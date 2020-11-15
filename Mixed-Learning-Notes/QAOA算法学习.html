@@ -24,44 +24,46 @@
         
     </head>
     <body class="vscode-body vscode-light">
-        <p><strong><center><font face="微软雅黑" color=black size=10>QAOA算法学习</font></center></strong>
-代码（作者：Microsoft）：</p>
-<p><a href="https://github.com/microsoft/Quantum/tree/main/samples/simulation/qaoa">https://github.com/microsoft/Quantum/tree/main/samples/simulation/qaoa</a></p>
+        <p><strong><center><font face="微软雅黑" size=10>QAOA算法学习</font></center></strong></p>
+<p>代码（作者：Microsoft）：[<a href="https://github.com/microsoft/Quantum/tree/main/samples/simulation/qaoa">https://github.com/microsoft/Quantum/tree/main/samples/simulation/qaoa</a>]</p>
 <p>翻译与整理：B20200342吕征宇 @北京科技大学 2020/11/15</p>
 <h1 id="问题提出并制定约束条件">问题提出并制定约束条件</h1>
 <p>先说明一下，这就是个组合优化问题（中的travelling salesman problem，Max Cut问题也是一个组合优化问题）。</p>
 <p>这个问题属于NP-Hard问题，精确算法（暴力搜索）需要<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">!</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n!)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord mathdefault">n</span><span class="mclose">!</span><span class="mclose">)</span></span></span></span>的时间，而动态编程则需要<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>2</mn></msup><msup><mn>2</mn><mi>n</mi></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n^{2}2^{n})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.064108em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault">n</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.664392em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">n</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>的时间；最小匹配法（The Algorithm of Christofides and Serdyukov）可以在<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>3</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n^{3})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.064108em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault">n</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>的时间内完成，而优化了迭代之后，使用Pairwise exchange的方法则可以达到<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi>n</mi><mi>l</mi><mi>o</mi><mi>g</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n log(n))</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord mathdefault">n</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">o</span><span class="mord mathdefault" style="margin-right:0.03588em;">g</span><span class="mopen">(</span><span class="mord mathdefault">n</span><span class="mclose">)</span><span class="mclose">)</span></span></span></span>的时间复杂度（这些优化虽然可解了，但是还是在极大节点的空域中只能得到近似解）。</p>
 <p>而我们知道，由于量子的天然并行性，可以使计算机处于天然的并行状态下，随着量子位的增加，算力呈现指数级增加，因此在这类问题上面可以有一个很大的加速，在未来能够控制量子精度的，使其足够高时候可以得到比现在的近似算法更精确的解，并且拥有更快的计算速率；因此我们使用量子加速便是为了这个目的进行的。</p>
-<p>依据 <a href="http://quantumalgorithmzoo.org/traveling_santa/">http://quantumalgorithmzoo.org/traveling_santa/</a> 中描述的圣诞老人问题，将验证函数定义在了经典计算范畴，总共有两个，CalculatedCost计算代价，而IsSatisfactory来判定是否满足题设中抽取出来的数学条件。</p>
+<p>依据 [<a href="http://quantumalgorithmzoo.org/traveling_santa/">http://quantumalgorithmzoo.org/traveling_santa/</a>] 中描述的圣诞老人问题，将验证函数定义在了经典计算范畴，总共有两个，CalculatedCost计算代价，而IsSatisfactory来判定是否满足题设中抽取出来的数学条件。</p>
 <h2 id="函数-calculatedcost">函数 CalculatedCost</h2>
-<h3 id="概述">概述</h3>
-<p>计算给定结果的总成本。</p>
-<p>这是经典计算方法而非量子方法。</p>
-<p>总成本计算公式所示：</p>
+<p>计算给定结果的总成本。这是经典计算方法而非量子方法。总成本计算公式所示：</p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mn>5</mn></munderover><msub><mi>C</mi><mi>j</mi></msub><msub><mi>x</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">C=\sum^{5}_{j=0}C_{j}x_{j}
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.07153em;">C</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:3.2148900000000005em;vertical-align:-1.4137769999999998em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.872331em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">0</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4137769999999998em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<h4 id="输入">输入</h4>
-<h5 id="segmentcosts">segmentCosts</h5>
+<h3 id="输入">输入</h3>
+<ul>
+<li>
+<p>segmentCosts</p>
 <p>路径的成本数组</p>
-<h5 id="usedsegments">usedSegments</h5>
+</li>
+<li>
+<p>usedSegments</p>
 <p>路径的使用状况数组</p>
-<h4 id="output">Output</h4>
-<h5 id="finalcost">finalCost</h5>
+</li>
+</ul>
+<h3 id="output">Output</h3>
+<ul>
+<li>
+<p>finalCost</p>
 <p>给定路径的成本结果</p>
-<h4 id="代码">代码</h4>
-<pre><code><code><div>function CalculatedCost(segmentCosts : Double[], usedSegments : Bool[]) : Double {
-    mutable finalCost = 0.0;
-    for ((cost, segment) in Zipped(segmentCosts, usedSegments)) {
-        set finalCost += segment ? cost | 0.0;
+</li>
+</ul>
+<h3 id="代码">代码</h3>
+<pre><code class="language-Javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">CalculatedCost</span>(<span class="hljs-params">segmentCosts : Double[], usedSegments : Bool[]</span>) : <span class="hljs-title">Double</span> </span>{
+    mutable finalCost = <span class="hljs-number">0.0</span>;
+    <span class="hljs-keyword">for</span> ((cost, segment) <span class="hljs-keyword">in</span> Zipped(segmentCosts, usedSegments)) {
+        set finalCost += segment ? cost | <span class="hljs-number">0.0</span>;
     }
-    return finalCost;
+    <span class="hljs-keyword">return</span> finalCost;
 }
-</div></code></code></pre>
+</div></code></pre>
 <h2 id="函数-issatisfactory">函数 IsSatisfactory</h2>
-<h3 id="概述-1">概述</h3>
-<p>最终检查以确定使用的段是否满足我们已知的约束。此函数用于考虑一个包含6个线段和三个有效连通路径的图。</p>
-<p>这是经典计算方法而非量子方法。</p>
-<p>这个方法要通过以下4个约束条件，来判断路径是否满足题设条件：</p>
 <p>最终检查以确定使用的段是否满足我们已知的约束。此函数用于考虑一个包含6个线段和三个有效连通路径的图。这是经典计算方法而非量子方法。这个方法要通过以下4个约束条件，来判断路径是否满足题设条件：</p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mn>5</mn></munderover><msub><mi>x</mi><mi>j</mi></msub><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">\sum^{5}_{j=0} x_{j}=4 
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:3.2148900000000005em;vertical-align:-1.4137769999999998em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8011130000000004em;"><span style="top:-1.872331em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">0</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3000050000000005em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4137769999999998em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span></span></span></span></span></p>
@@ -71,135 +73,165 @@
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mn>4</mn></msub><mo>=</mo><msub><mi>x</mi><mn>5</mn></msub></mrow><annotation encoding="application/x-tex">x_{4}=x_{5} 
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">4</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<h4 id="输入-1">输入</h4>
-<h5 id="numsegments">numSegments</h5>
+<h3 id="输入-1">输入</h3>
+<ul>
+<li>
+<p>numSegments</p>
 <p>图中的分段数</p>
-<h5 id="usedsegments-1">usedSegments</h5>
+</li>
+<li>
+<p>usedSegments</p>
 <p>使用了哪些段的数组</p>
-<h4 id="output-1">Output</h4>
-<h5 id="output-2">output</h5>
+</li>
+</ul>
+<h3 id="output-1">Output</h3>
+<ul>
+<li>
+<p>output</p>
 <p>是否满足条件(布尔值)</p>
-<h4 id="代码-1">代码</h4>
-<pre><code><code><div>function IsSatisfactory(numSegments: Int, usedSegments : Bool[]) : Bool {
-    EqualityFactI(numSegments, 6, 
-        &quot;Currently, IsSatisfactory only supports constraints for 6 segments.&quot;
+</li>
+</ul>
+<h3 id="代码-1">代码</h3>
+<pre><code class="language-Javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">IsSatisfactory</span>(<span class="hljs-params">numSegments: Int, usedSegments : Bool[]</span>) : <span class="hljs-title">Bool</span> </span>{
+    EqualityFactI(numSegments, <span class="hljs-number">6</span>, 
+        <span class="hljs-string">&quot;Currently, IsSatisfactory only supports constraints for 6 segments.&quot;</span>
     );
-    mutable hammingWeight = 0;
-    for (segment in usedSegments) {
-        set hammingWeight += segment ? 1 | 0;
+    mutable hammingWeight = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">for</span> (segment <span class="hljs-keyword">in</span> usedSegments) {
+        set hammingWeight += segment ? <span class="hljs-number">1</span> | <span class="hljs-number">0</span>;
     }
-    if (hammingWeight != 4 
-        or usedSegments[0] != usedSegments[2] 
-        or usedSegments[1] != usedSegments[3] 
-        or usedSegments[4] != usedSegments[5]) {
-        return false;
+    <span class="hljs-keyword">if</span> (hammingWeight != <span class="hljs-number">4</span>
+        or usedSegments[<span class="hljs-number">0</span>] != usedSegments[<span class="hljs-number">2</span>]
+        or usedSegments[<span class="hljs-number">1</span>] != usedSegments[<span class="hljs-number">3</span>]
+        or usedSegments[<span class="hljs-number">4</span>] != usedSegments[<span class="hljs-number">5</span>]) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
     }
-    return true;
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
 }
-</div></code></code></pre>
+</div></code></pre>
 <h1 id="问题转化">问题转化</h1>
 <p>通过已经抽取出来的数学条件，作者将问题转化为量子计算中优化问题，是将一些变量映射到时间域上进行优化。</p>
 <h2 id="函数-performqaoa">函数 PerformQAOA</h2>
-<h3 id="概述-2">概述</h3>
 <p>对这个 Ising Hamiltonian执行QAOA算法，这个是个总的流程，可以看作整个量子电路的循环运行。</p>
-<h4 id="输入-2">输入</h4>
-<h5 id="numsegments-1">numSegments</h5>
+<h3 id="输入-2">输入</h3>
+<ul>
+<li>
+<p>numSegments</p>
 <p>图中的总边数</p>
-<h5 id="weights">weights</h5>
+</li>
+<li>
+<p>weights</p>
 <p>将Hamiltonian参数（“权重”）作为一个数组，其中每个元素对应于qubit状态<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.85396em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.05724em;">j</span></span></span></span>的参数<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">h_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.980548em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span></p>
-<h5 id="couplings">couplings</h5>
+</li>
+<li>
+<p>couplings</p>
 <p>将哈密顿耦合参数实例化为一个数组，其中每个元素对应于量子位状态<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.65952em;vertical-align:0em;"></span><span class="mord mathdefault">i</span></span></span></span>和<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.85396em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.05724em;">j</span></span></span></span>之间的参数<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>j</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">j_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9456279999999999em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.05724em;">j</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.05724em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span></p>
-<h5 id="timex">timeX</h5>
+</li>
+<li>
+<p>timeX</p>
 <p>Pauli-X算子的时间演化</p>
-<h5 id="timez">timeZ</h5>
+</li>
+<li>
+<p>timeZ</p>
 <p>Pauli-Z算子的时间演化</p>
-<h4 id="代码-2">代码</h4>
-<pre><code><code><div>operation PerformQAOA(
-        numSegments : Int, 
-        weights : Double[], 
-        couplings : Double[], 
-        timeX : Double[], 
-        timeZ : Double[]
+</li>
+</ul>
+<h3 id="代码-2">代码</h3>
+<pre><code class="language-Javascript"><div>operation PerformQAOA(
+        numSegments : Int,
+        <span class="hljs-attr">weights</span> : Double[],
+        <span class="hljs-attr">couplings</span> : Double[],
+        <span class="hljs-attr">timeX</span> : Double[],
+        <span class="hljs-attr">timeZ</span> : Double[]
 ) : Bool[] {
-    EqualityFactI(Length(timeX), Length(timeZ), &quot;timeZ and timeX are not the same length&quot;);
+    EqualityFactI(Length(timeX), Length(timeZ), <span class="hljs-string">&quot;timeZ and timeX are not the same length&quot;</span>);
 
-    // 运行 QAOA 电路
-    mutable result = new Bool[numSegments];
+    <span class="hljs-comment">// 运行 QAOA 电路</span>
+    mutable result = <span class="hljs-keyword">new</span> Bool[numSegments];
     using (x = Qubit[numSegments]) {
-        // 将改6个量子进行组合，并且初始化为均匀概率
-        ApplyToEach(H, x); 
-        for ((tz, tx) in Zipped(timeZ, timeX)) {
-            // 执行 Exp(-i H_C tz)
-            ApplyInstanceHamiltonian(numSegments, tz, weights, couplings, x); 
-            // 执行 Exp(-i H_0 tx)
-            ApplyDriverHamiltonian(tx, x); 
+        <span class="hljs-comment">// 将改6个量子进行组合，并且初始化为均匀概率</span>
+        ApplyToEach(H, x);
+        <span class="hljs-keyword">for</span> ((tz, tx) <span class="hljs-keyword">in</span> Zipped(timeZ, timeX)) {
+            <span class="hljs-comment">// 执行 Exp(-i H_C tz)</span>
+            ApplyInstanceHamiltonian(numSegments, tz, weights, couplings, x);
+            <span class="hljs-comment">// 执行 Exp(-i H_0 tx)</span>
+            ApplyDriverHamiltonian(tx, x);
         }
-        //计算基础上的度量
-        return ResultArrayAsBoolArray(MultiM(x)); 
+        <span class="hljs-comment">//计算基础上的度量</span>
+        <span class="hljs-keyword">return</span> ResultArrayAsBoolArray(MultiM(x));
     }
 }
-</div></code></code></pre>
+</div></code></pre>
 <h2 id="函数--applydriverhamiltonian">函数  ApplyDriverHamiltonian</h2>
-<h3 id="简介">简介</h3>
-<p>此操作将X旋转应用于每个量子比特。我们可以把它看作是通过应用Hamiltonian对所有X旋转求和得到的时间演化。因为在量子过程中，优化搜索相当于对量子进行干涉的动态演化过程。</p>
-<h4 id="数学描述">数学描述</h4>
-<p>Driver Hamiltonian的定义：
+<p>此操作将X旋转应用于每个量子比特。我们可以把它看作是通过应用Hamiltonian对所有X旋转求和得到的时间演化。因为在量子过程中，优化搜索相当于对量子进行干涉的动态演化过程。Driver Hamiltonian的定义：
 对于时间t而言，有</p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo>=</mo><mo>−</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>X</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">H = - \sum_{i} X_{i} 
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.08125em;">H</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.327674em;vertical-align:-1.277669em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0500050000000003em;"><span style="top:-1.872331em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.277669em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07847em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07847em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<h4 id="输入-3">输入</h4>
-<h5 id="时间">时间</h5>
+<h3 id="输入-3">输入</h3>
+<ul>
+<li>
+<p>时间</p>
 <p>X旋转演化的时间</p>
-<h5 id="目标">目标</h5>
+</li>
+<li>
+<p>目标</p>
 <p>目标量子寄存器</p>
-<h4 id="代码-3">代码</h4>
-<pre><code><code><div>operation ApplyDriverHamiltonian(time: Double, target: Qubit[]) : Unit is Adj + Ctl {
-    ApplyToEachCA(Rx(-2.0 * time, _), target);
+</li>
+</ul>
+<h3 id="代码-3">代码</h3>
+<pre><code class="language-Javascript"><div>operation ApplyDriverHamiltonian(time: Double, <span class="hljs-attr">target</span>: Qubit[]) : Unit is Adj + Ctl {
+    ApplyToEachCA(Rx(<span class="hljs-number">-2.0</span> * time, _), target);
 }
-</div></code></code></pre>
+</div></code></pre>
 <h2 id="函数--applyinstancehamiltonian">函数  ApplyInstanceHamiltonian</h2>
-<h3 id="概述-3">概述</h3>
-<p>根据这个例子，Hamiltonian适用于旋转。我们可以把它看作是Ising Hamiltonian引起的时间t的哈密顿时间演化。对<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">J_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>缩放的所有Pauli-Z运算<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">Z_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>和<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">Z_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>的所有连通对上的Ising Hamiltonian进行求和再加上所有<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">h_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>缩放的<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">Z_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>的和。这个便是问题2中最后确定的好的代价函数。</p>
-<h4 id="数学描述-1">数学描述</h4>
-<p>Ising Hamiltonian 可以表示为:</p>
+<p>根据这个例子，Hamiltonian适用于旋转。我们可以把它看作是Ising Hamiltonian引起的时间t的哈密顿时间演化。对<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">J_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>缩放的所有Pauli-Z运算<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">Z_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>和<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">Z_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>的所有连通对上的Ising Hamiltonian进行求和再加上所有<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">h_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>缩放的<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">Z_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>的和。这个便是问题2中最后确定的好的代价函数。Ising Hamiltonian 可以表示为:</p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>C</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mi>j</mi></mrow></munder><msub><mi>J</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>Z</mi><mi>i</mi></msub><msub><mi>Z</mi><mi>j</mi></msub><mo>+</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>h</mi><mi>i</mi></msub><msub><mi>Z</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">H_{C}=\sum_{ij} J_{ij} Z_i Z_j + \sum_i h_i Z_i
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.08125em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.32833099999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.08125em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.07153em;">C</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.463782em;vertical-align:-1.413777em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.050005em;"><span style="top:-1.8723309999999997em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span style="top:-3.0500049999999996em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.413777em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:2.327674em;vertical-align:-1.277669em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0500050000000003em;"><span style="top:-1.872331em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span><span style="top:-3.050005em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.277669em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.07153em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.07153em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></p>
-<h4 id="输入-4">输入</h4>
-<h5 id="time">time</h5>
+<h3 id="输入-4">输入</h3>
+<ul>
+<li>
+<p>time</p>
 <p>演化的时间点.</p>
-<h5 id="weights-1">weights</h5>
+</li>
+<li>
+<p>weights</p>
 <p>旅行圣诞老人问题的Ising约束场（“权重”编码）。</p>
-<h5 id="coupling">coupling</h5>
+</li>
+<li>
+<p>coupling</p>
 <p>旅行圣诞老人问题的Ising对（“惩罚”编码）。</p>
-<h4 id="target">target</h4>
+</li>
+<li>
+<p>target</p>
 <p>Ising Hamiltonian中的旋转值进行编码的量子位寄存器。</p>
-<h4 id="代码-4">代码</h4>
-<pre><code><code><div>operation ApplyInstanceHamiltonian(
+</li>
+</ul>
+<h3 id="代码-4">代码</h3>
+<pre><code class="language-Javascript"><div>operation ApplyInstanceHamiltonian(
     numSegments : Int,
-    time : Double, 
-    weights : Double[], 
-    coupling : Double[],
-    target : Qubit[]
+    <span class="hljs-attr">time</span> : Double,
+    <span class="hljs-attr">weights</span> : Double[],
+    <span class="hljs-attr">coupling</span> : Double[],
+    <span class="hljs-attr">target</span> : Qubit[]
 ) : Unit {
     using (auxiliary = Qubit()) {
-        for ((h, qubit) in Zipped(weights, target)) {
-            Rz(2.0 * time * h, qubit);
+        <span class="hljs-keyword">for</span> ((h, qubit) <span class="hljs-keyword">in</span> Zipped(weights, target)) {
+            Rz(<span class="hljs-number">2.0</span> * time * h, qubit);
         }
-        for (i in 0..5) {
-            for (j in i + 1..5) {
+        <span class="hljs-keyword">for</span> (i <span class="hljs-keyword">in</span> <span class="hljs-number">0.</span><span class="hljs-number">.5</span>) {
+            <span class="hljs-keyword">for</span> (j <span class="hljs-keyword">in</span> i + <span class="hljs-number">1.</span><span class="hljs-number">.5</span>) {
                 within {
                     CNOT(target[i], auxiliary);
                     CNOT(target[j], auxiliary);
                 } apply {
-                    Rz(2.0 * time * coupling[numSegments * i + j], auxiliary);
+                    Rz(<span class="hljs-number">2.0</span> * time * coupling[numSegments * i + j], auxiliary);
                 }
             }
         }
     }
 }
-</div></code></code></pre>
+</div></code></pre>
 <h2 id="函数-hamiltonianweights">函数 HamiltonianWeights</h2>
-<h3 id="概述-4">概述</h3>
 <p>根据给定的代价和惩罚计算Hamiltonian参数。</p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>j</mi></msub><mo>=</mo><mn>4</mn><mi>p</mi><mtext>−</mtext><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>C</mi><mo separator="true">,</mo><mtext>其中</mtext><mi>p</mi><mo>=</mo><mn>20</mn></mrow><annotation encoding="application/x-tex">h_{j}=4p−\frac{1}{2}C, 其中p=20
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.980548em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.00744em;vertical-align:-0.686em;"></span><span class="mord">4</span><span class="mord mathdefault">p</span><span class="mord">−</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.32144em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord mathdefault" style="margin-right:0.07153em;">C</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord cjk_fallback">其</span><span class="mord cjk_fallback">中</span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">0</span></span></span></span></span></p>
@@ -216,107 +248,131 @@
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">7</span><span class="mord">5</span><span class="mord">.</span><span class="mord">9</span><span class="mord">9</span></span></span></span></span></p>
 <p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mn>5</mn></msub><mo>=</mo><mn>79.145</mn></mrow><annotation encoding="application/x-tex">h_5=79.145
 </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">7</span><span class="mord">9</span><span class="mord">.</span><span class="mord">1</span><span class="mord">4</span><span class="mord">5</span></span></span></span></span></p>
-<h4 id="输入-5">输入</h4>
-<h5 id="segmentcosts-1">segmentCosts</h5>
+<h3 id="输入-5">输入</h3>
+<ul>
+<li>
+<p>segmentCosts</p>
 <p>每条边的代价</p>
-<h5 id="penalty">penalty</h5>
+</li>
+<li>
+<p>penalty</p>
 <p>对不符合约束条件的情况进行处罚</p>
-<h4 id="output-3">Output</h4>
-<h5 id="weights-2">weights</h5>
+</li>
+</ul>
+<h3 id="output-2">Output</h3>
+<ul>
+<li>
+<p>weights</p>
 <p>Hamiltonian参数（“权重”）作为一个数组，其中每个元素对应于量子比特状态<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.85396em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.05724em;">j</span></span></span></span>的参数<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">h_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.980548em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span></p>
-<h5 id="numsegments-2">numSegments</h5>
+</li>
+<li>
+<p>numSegments</p>
 <p>图中描述可能路径的段数</p>
-<h4 id="代码-5">代码</h4>
-<pre><code><code><div>function HamiltonianWeights(
-    segmentCosts : Double[], 
-    penalty : Double, 
+</li>
+</ul>
+<h3 id="代码-5">代码</h3>
+<pre><code class="language-Javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">HamiltonianWeights</span>(<span class="hljs-params">
+    segmentCosts : Double[],
+    penalty : Double,
     numSegments : Int
-) : Double[] {
-    mutable weights = new Double[numSegments];
-    for (i in 0..numSegments - 1) {
-        set weights w/= i &lt;- 4.0 * penalty - 0.5 * segmentCosts[i];
+</span>) : <span class="hljs-title">Double</span>[] </span>{
+    mutable weights = <span class="hljs-keyword">new</span> Double[numSegments];
+    <span class="hljs-keyword">for</span> (i <span class="hljs-keyword">in</span> <span class="hljs-number">0.</span>.numSegments - <span class="hljs-number">1</span>) {
+        set weights w/= i &lt;- <span class="hljs-number">4.0</span> * penalty - <span class="hljs-number">0.5</span> * segmentCosts[i];
     }
-    return weights;
+    <span class="hljs-keyword">return</span> weights;
 }
-</div></code></code></pre>
+</div></code></pre>
 <h2 id="函数-hamiltoniancouplings">函数 HamiltonianCouplings</h2>
-<h3 id="概述-5">概述</h3>
 <p>依据给定的罚函数计算Hamiltonian对参数：基于给定的代价和惩罚计算Hamiltonian耦合参数，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">J_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>的大多数元素都等于2倍惩罚，因此将所有元素设置为该值，然后覆盖异常。这个是目前实现的6量子位的例子。
 令其他的<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mrow><mi>i</mi><mo>&lt;</mo><mi>j</mi></mrow></msub><mo>=</mo><mn>2</mn><mi>p</mi></mrow><annotation encoding="application/x-tex">J_{i&lt;j}=2p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mrel mtight">&lt;</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8388800000000001em;vertical-align:-0.19444em;"></span><span class="mord">2</span><span class="mord mathdefault">p</span></span></span></span>以及<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mn>02</mn></msub><mo>=</mo><msub><mi>J</mi><mn>13</mn></msub><mo>=</mo><msub><mi>J</mi><mn>45</mn></msub><mo>=</mo><mi>p</mi></mrow><annotation encoding="application/x-tex">J_{02}=J_{13}=J_{45}=p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">4</span><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span></span></span></span>，作者此时使用<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>=</mo><mn>20</mn></mrow><annotation encoding="application/x-tex">p=20</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">0</span></span></span></span>。该函数计算可以得到以下的结果：</p>
-<pre><code class="language-math"><code><div>J_{02}=J_{13}=J_{45}=20
-
-J_{01}=J_{03}=J_{04}=J_{12}=J_{14}=J_{15}=J_{23}=J_{24}=J_{25}=J_{34}=J_{35}=40
-</div></code></code></pre>
-<h4 id="输入-6">输入</h4>
-<h5 id="penalty-1">penalty</h5>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mn>02</mn></msub><mo>=</mo><msub><mi>J</mi><mn>13</mn></msub><mo>=</mo><msub><mi>J</mi><mn>45</mn></msub><mo>=</mo><mn>20</mn></mrow><annotation encoding="application/x-tex">J_{02}=J_{13}=J_{45}=20
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">4</span><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">2</span><span class="mord">0</span></span></span></span></span></p>
+<p><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mn>01</mn></msub><mo>=</mo><msub><mi>J</mi><mn>03</mn></msub><mo>=</mo><msub><mi>J</mi><mn>04</mn></msub><mo>=</mo><msub><mi>J</mi><mn>12</mn></msub><mo>=</mo><msub><mi>J</mi><mn>14</mn></msub><mo>=</mo><msub><mi>J</mi><mn>15</mn></msub><mo>=</mo><msub><mi>J</mi><mn>23</mn></msub><mo>=</mo><msub><mi>J</mi><mn>24</mn></msub><mo>=</mo><msub><mi>J</mi><mn>25</mn></msub><mo>=</mo><msub><mi>J</mi><mn>34</mn></msub><mo>=</mo><msub><mi>J</mi><mn>35</mn></msub><mo>=</mo><mn>40</mn></mrow><annotation encoding="application/x-tex">J_{01}=J_{03}=J_{04}=J_{12}=J_{14}=J_{15}=J_{23}=J_{24}=J_{25}=J_{34}=J_{35}=40
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mord mtight">4</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">4</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mtight">4</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">4</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span><span class="mord mtight">5</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">0</span></span></span></span></span></p>
+<h3 id="输入-6">输入</h3>
+<ul>
+<li>
+<p>penalty</p>
 <p>对不符合约束条件的情况进行惩罚</p>
-<h5 id="numsegments-3">numSegments</h5>
+</li>
+<li>
+<p>numSegments</p>
 <p>图中描述可能路径的段数</p>
-<h4 id="output-4">Output</h4>
-<h5 id="coupling-1">coupling</h5>
+</li>
+</ul>
+<h3 id="输出">输出</h3>
+<ul>
+<li>
+<p>coupling</p>
 <p>哈密顿耦合参数作为一个数组，其中每个元素对应于量子比特状态<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.65952em;vertical-align:0em;"></span><span class="mord mathdefault">i</span></span></span></span>和<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.85396em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.05724em;">j</span></span></span></span>之间的一个参数<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">J_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.969438em;vertical-align:-0.286108em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.09618em;">J</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.311664em;"><span style="top:-2.5500000000000003em;margin-left:-0.09618em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">i</span><span class="mord mathdefault mtight" style="margin-right:0.05724em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.286108em;"><span></span></span></span></span></span></span></span></span></span>。</p>
-<h4 id="代码-6">代码</h4>
-<pre><code><code><div>function HamiltonianCouplings(penalty : Double, numSegments : Int) : Double[] {
-    EqualityFactI(numSegments, 6, 
-        &quot;Currently, HamiltonianCouplings only supports given constraints for 6 segments.&quot;
+</li>
+</ul>
+<h3 id="代码-6">代码</h3>
+<pre><code class="language-Javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">HamiltonianCouplings</span>(<span class="hljs-params">penalty : Double, numSegments : Int</span>) : <span class="hljs-title">Double</span>[] </span>{
+    EqualityFactI(numSegments, <span class="hljs-number">6</span>,
+        <span class="hljs-string">&quot;Currently, HamiltonianCouplings only supports given constraints for 6 segments.&quot;</span>
     );
-    return ConstantArray(numSegments * numSegments, 2.0 * penalty)
-        w/ 2 &lt;- penalty
-        w/ 9 &lt;- penalty
-        w/ 29 &lt;- penalty;
+    <span class="hljs-keyword">return</span> ConstantArray(numSegments * numSegments, <span class="hljs-number">2.0</span> * penalty)
+        w/ <span class="hljs-number">2</span> &lt;- penalty
+        w/ <span class="hljs-number">9</span> &lt;- penalty
+        w/ <span class="hljs-number">29</span> &lt;- penalty;
 }
-</div></code></code></pre>
+</div></code></pre>
 <h1 id="运行函数">运行函数</h1>
 <h2 id="主函数----runqaoatrials">主函数    RunQAOATrials</h2>
-<h3 id="简介-1">简介</h3>
 <p>运行QAOA，在6个量子比特上进行给定数量的试验。此示例基于
-关于圣诞老人的旅行问题：<a href="http://quantumalgorithmzoo.org/traveling_santa/">http://quantumalgorithmzoo.org/traveling_santa/</a>.
+关于圣诞老人的旅行问题：[<a href="http://quantumalgorithmzoo.org/traveling_santa/">http://quantumalgorithmzoo.org/traveling_santa/</a>].
 报告旅行圣诞老人问题的最佳行程，以及多少次运行结果得到答案。这通常会在大约71%的时间内返回最佳解决方案。</p>
-<h4 id="输入-7">输入</h4>
-<h5 id="运行次数">运行次数</h5>
+<h3 id="输入-7">输入</h3>
+<ul>
+<li>
+<p>运行次数</p>
 <p>QAOA算法尝试的次数.</p>
-<h4 id="代码-7">代码</h4>
-<pre><code><code><div>@EntryPoint()
+</li>
+</ul>
+<h3 id="代码-7">代码</h3>
+<pre><code class="language-Javascript"><div>@EntryPoint()
 operation RunQAOATrials(numTrials : Int) : Unit {
-    let penalty = 20.0;
-    let segmentCosts = [4.70, 9.09, 9.03, 5.70, 8.02, 1.71];
-    let timeX = [0.619193, 0.742566, 0.060035, -1.568955, 0.045490];
-    let timeZ = [3.182203, -1.139045, 0.221082, 0.537753, -0.417222];
-    let limit = 1E-6;
-    let numSegments = 6;
-    mutable bestCost = 100.0 * penalty;
-    mutable bestItinerary = [false, false, false, false, false];
-    mutable successNumber = 0;
-    let weights = HamiltonianWeights(segmentCosts, penalty, numSegments);
-    let couplings = HamiltonianCouplings(penalty, numSegments);
-    for (trial in 0..numTrials) {
-        let result = PerformQAOA(
+    <span class="hljs-keyword">let</span> penalty = <span class="hljs-number">20.0</span>;
+    <span class="hljs-keyword">let</span> segmentCosts = [<span class="hljs-number">4.70</span>, <span class="hljs-number">9.09</span>, <span class="hljs-number">9.03</span>, <span class="hljs-number">5.70</span>, <span class="hljs-number">8.02</span>, <span class="hljs-number">1.71</span>];
+    <span class="hljs-keyword">let</span> timeX = [<span class="hljs-number">0.619193</span>, <span class="hljs-number">0.742566</span>, <span class="hljs-number">0.060035</span>, <span class="hljs-number">-1.568955</span>, <span class="hljs-number">0.045490</span>];
+    <span class="hljs-keyword">let</span> timeZ = [<span class="hljs-number">3.182203</span>, <span class="hljs-number">-1.139045</span>, <span class="hljs-number">0.221082</span>, <span class="hljs-number">0.537753</span>, <span class="hljs-number">-0.417222</span>];
+    <span class="hljs-keyword">let</span> limit = <span class="hljs-number">1E-6</span>;
+    <span class="hljs-keyword">let</span> numSegments = <span class="hljs-number">6</span>;
+    mutable bestCost = <span class="hljs-number">100.0</span> * penalty;
+    mutable bestItinerary = [<span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>];
+    mutable successNumber = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">let</span> weights = HamiltonianWeights(segmentCosts, penalty, numSegments);
+    <span class="hljs-keyword">let</span> couplings = HamiltonianCouplings(penalty, numSegments);
+    <span class="hljs-keyword">for</span> (trial <span class="hljs-keyword">in</span> <span class="hljs-number">0.</span>.numTrials) {
+        <span class="hljs-keyword">let</span> result = PerformQAOA(
             numSegments, 
             weights, 
             couplings, 
             timeX, 
             timeZ
         );
-        let cost = CalculatedCost(segmentCosts, result);
-        let sat = IsSatisfactory(numSegments, result);
-        Message($&quot;result = {result}, cost = {cost}, satisfactory = {sat}&quot;);
-        if (sat) {
-            if (cost &lt; bestCost - limit) {
-                // New best cost found - update
+        <span class="hljs-keyword">let</span> cost = CalculatedCost(segmentCosts, result);
+        <span class="hljs-keyword">let</span> sat = IsSatisfactory(numSegments, result);
+        Message($<span class="hljs-string">&quot;result = {result}, cost = {cost}, satisfactory = {sat}&quot;</span>);
+        <span class="hljs-keyword">if</span> (sat) {
+            <span class="hljs-keyword">if</span> (cost &lt; bestCost - limit) {
+                <span class="hljs-comment">// New best cost found - update</span>
                 set bestCost = cost;
                 set bestItinerary = result;
-                set successNumber = 1;
+                set successNumber = <span class="hljs-number">1</span>;
             } elif (AbsD(cost - bestCost) &lt; limit) {
-                set successNumber += 1;
+                set successNumber += <span class="hljs-number">1</span>;
             }
         }
     }
-    let runPercentage = IntAsDouble(successNumber) * 100.0 / IntAsDouble(numTrials);
-    Message(&quot;Simulation is complete\n&quot;);
-    Message($&quot;Best itinerary found: {bestItinerary}, cost = {bestCost}&quot;);
-    Message($&quot;{runPercentage}% of runs found the best itinerary\n&quot;);
+    <span class="hljs-keyword">let</span> runPercentage = IntAsDouble(successNumber) * <span class="hljs-number">100.0</span> / IntAsDouble(numTrials);
+    Message(<span class="hljs-string">&quot;Simulation is complete\n&quot;</span>);
+    Message($<span class="hljs-string">&quot;Best itinerary found: {bestItinerary}, cost = {bestCost}&quot;</span>);
+    Message($<span class="hljs-string">&quot;{runPercentage}% of runs found the best itinerary\n&quot;</span>);
 }
-</div></code></code></pre>
+</div></code></pre>
 
     </body>
     </html>
