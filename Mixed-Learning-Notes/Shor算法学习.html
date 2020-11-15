@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>&#x4EE3;&#x7801;&#x7B80;&#x4ECB;</title>
+        <style>
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.10.2/dist/katex.min.css" integrity="sha384-yFRtMMDnQtDRO8rLpMIKrtPCD5jdktao2TV19YiZYWMDkUR5GQZR/NOVTdquEx1j" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        
+        <script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><strong><center><font face="微软雅黑" size=10>Shor算法学习</font></center></strong></p>
+<h1 id="代码简介">代码简介</h1>
+<p>此示例包含实现Shor整数因式分解的量子算法的Q#代码。基于Stephane Beauregard的一篇论文，基本的模块化算法是在相位编码中实现的，他给出了一个量子电路需要 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mi>n</mi><mo>+</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">2n+3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.72777em;vertical-align:-0.08333em;"></span><span class="mord">2</span><span class="mord mathdefault">n</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span></span></span></span> 个量子位和<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><msup><mi>n</mi><mn>3</mn></msup><mi>l</mi><mi>o</mi><mi>g</mi><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n^{3}log(n))</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.064108em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.02778em;">O</span><span class="mopen">(</span><span class="mord"><span class="mord mathdefault">n</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">o</span><span class="mord mathdefault" style="margin-right:0.03588em;">g</span><span class="mopen">(</span><span class="mord mathdefault">n</span><span class="mclose">)</span><span class="mclose">)</span></span></span></span>的基本量子门来进行对<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span></span></span></span>比特数的因式分解。</p>
+<h1 id="主函数--factorsemiprimeinteger">主函数  FactorSemiprimeInteger</h1>
+<h2 id="概要">概要</h2>
+<p>使用 Shor 算法去分解参数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span></span></span></span>。
+主要原理就是分解一个<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span></span></span></span>，使得 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>=</mo><mi>p</mi><mo>⋅</mo><mi>q</mi></mrow><annotation encoding="application/x-tex">N=p \cdot q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.63889em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span></span></span></span>。
+找到<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">p &gt; 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335400000000001em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span> 、 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335400000000001em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>，然后完成分解。</p>
+<h3 id="输入">输入</h3>
+<ul>
+<li>
+<p>number</p>
+<p>数字<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span></span></span></span>：一个待分解半素数</p>
+</li>
+<li>
+<p>useRobustPhaseEstimation</p>
+<p>如果设置为true，则使用 Microsoft.Quantum.Characterization.RobustPhaseEstimation 以及 Microsoft.Quantum.Characterization.QuantumPhaseEstimation, 否则则使用其他的方法</p>
+</li>
+</ul>
+<h3 id="输出">输出</h3>
+<ul>
+<li>
+<p>一对数</p>
+<p>满足 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">p &gt; 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335400000000001em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span> 、 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">q &gt; 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7335400000000001em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>⋅</mo><mi>q</mi><mo>=</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">p \cdot q = N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.63889em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">q</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span></span></span></span></p>
+</li>
+</ul>
+<h3 id="代码">代码</h3>
+<pre><code class="language-Javascript"><div>operation FactorSemiprimeInteger(number : Int, <span class="hljs-attr">useRobustPhaseEstimation</span> : Bool) : (Int, Int) {
+    <span class="hljs-comment">//如果提供的数字是偶数，首先检查最简单的情况</span>
+    <span class="hljs-keyword">if</span> (number % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>) {
+        Message(<span class="hljs-string">&quot;An even number has been given; 2 is a factor.&quot;</span>);
+        <span class="hljs-keyword">return</span> (number / <span class="hljs-number">2</span>, <span class="hljs-number">2</span>);
+    }
+    <span class="hljs-comment">//如果我们找到了这些可变因素，那么这些可变变量将跟踪这些因素是什么。</span>
+    mutable foundFactors = <span class="hljs-literal">false</span>;
+    <span class="hljs-comment">//因子的默认值是 (1,1).</span>
+    mutable factors = (<span class="hljs-number">1</span>, <span class="hljs-number">1</span>);
+    repeat {
+        <span class="hljs-comment">//下一步试着把一个数的余素数猜成&#x27;number&#x27;</span>
+        <span class="hljs-comment">//在区间[1,number-1]中获取一个随机整数</span>
+        <span class="hljs-keyword">let</span> generator = DrawRandomInt(<span class="hljs-number">1</span>, number - <span class="hljs-number">1</span>);
+        <span class="hljs-comment">//检查随机整数是否真的使用 Microsoft.Quantum.Math.IsCoprimeI。</span>
+        <span class="hljs-comment">//如果为真，则使用量子算法进行周期查找。</span>
+        <span class="hljs-keyword">if</span> (IsCoprimeI(generator, number)) {
+            <span class="hljs-comment">//使用 Microsoft.Quantum.Intrinsic.Message打印信息</span>
+            <span class="hljs-comment">//表明我们正在用量子方法进行处理</span>
+            Message($<span class="hljs-string">&quot;Estimating period of {generator}&quot;</span>);
+            <span class="hljs-comment">//调用`generator` mod &#x27;number&#x27;的量子周期查找算法。</span>
+            <span class="hljs-comment">//这里我们可以选择使用哪种相位估计算法。</span>
+            <span class="hljs-keyword">let</span> period = EstimatePeriod(generator, number, useRobustPhaseEstimation);
+            <span class="hljs-comment">//如果辗转相除成功，则设置标志和因数。</span>
+            set (foundFactors, factors) = MaybeFactorsFromPeriod(number, generator, period);
+        }
+        <span class="hljs-comment">//在这个例子中，我们意外地猜到了除数。</span>
+        <span class="hljs-keyword">else</span> {
+            <span class="hljs-comment">//使用Microsoft.Quantum.Math.GreatestCommonDivisorI</span>
+            <span class="hljs-comment">//来发现最大公约数</span>
+            <span class="hljs-keyword">let</span> gcd = GreatestCommonDivisorI(number, generator);
+            <span class="hljs-comment">//别忘了告诉用户我们很幸运，没有做任何量子运算。</span>
+            <span class="hljs-comment">//通过Microsoft.Quantum.Intrinsic.Message.发送消息</span>
+            Message($<span class="hljs-string">&quot;We have guessed a divisor of {number} to be {gcd} by accident.&quot;</span>);
+            <span class="hljs-comment">//将标志“foundFactors”设置为true，表示我们成功地找到了因子。</span>
+            set foundFactors = <span class="hljs-literal">true</span>;
+            set factors = (gcd, number / gcd);
+        }
+    }
+    until (foundFactors)
+    fixup {
+        Message(<span class="hljs-string">&quot;The estimated period did not yield a valid factor, trying again.&quot;</span>);
+    }
+    <span class="hljs-comment">// 返回分解结果</span>
+    <span class="hljs-keyword">return</span> factors;
+}
+</div></code></pre>
+<h2 id="概要-1">概要</h2>
+<p>将<code>target</code>转化为无符号小小端存储的整数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.03148em;">k</span></span></span></span> 进行编码，并执行转换 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>k</mi><mo stretchy="false">⟩</mo><mo>↦</mo><mi mathvariant="normal">∣</mi><msup><mi>g</mi><mi>p</mi></msup><mi>k</mi><mspace></mspace><mspace width="0.6666666666666666em"/><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">d</mi></mrow><mtext> </mtext><mtext> </mtext><mtext> </mtext><mi>N</mi><mo stretchy="false">⟩</mo></mrow><annotation encoding="application/x-tex">|k⟩↦| g^{p}k\mod\ N⟩</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathdefault" style="margin-right:0.03148em;">k</span><span class="mclose">⟩</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">↦</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.664392em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">p</span></span></span></span></span></span></span></span></span><span class="mord mathdefault" style="margin-right:0.03148em;">k</span><span class="mspace allowbreak"></span><span class="mspace" style="margin-right:0.6666666666666666em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord"><span class="mord mathrm">m</span><span class="mord mathrm">o</span><span class="mord mathrm">d</span></span></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mspace"> </span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span><span class="mclose">⟩</span></span></span></span> ，其中<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">p</span></span></span></span>是“power”，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi></mrow><annotation encoding="application/x-tex">g</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="mord mathdefault" style="margin-right:0.03588em;">g</span></span></span></span>是“generator”，而<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span></span></span></span>是“module”。</p>
+<h3 id="输入-1">输入</h3>
+<ul>
+<li>
+<p>generator</p>
+<p>The unsigned integer multiplicative order ( period )of which is being estimated. Must be co-prime to <code>modulus</code>.</p>
+</li>
+<li>
+<p>modulus</p>
+<p>The modulus which defines the residue ring Z mod <code>modulus</code> in which the multiplicative order of <code>generator</code> is being estimated.</p>
+</li>
+<li>
+<p>power</p>
+<p>Power of <code>generator</code> by which <code>target</code> is multiplied.</p>
+</li>
+<li>
+<p>target</p>
+<p>Register interpreted as LittleEndian which is multiplied by given power of the generator. The multiplication is performed modulo
+<code>modulus</code>.</p>
+</li>
+</ul>
+<pre><code class="language-Javascript"><div>operation ApplyOrderFindingOracle(generator : Int, <span class="hljs-attr">modulus</span> : Int, <span class="hljs-attr">power</span> : Int, <span class="hljs-attr">target</span> : Qubit[]): Unit is Adj + Ctl {
+     Check that the parameters satisfy the requirements.
+    Fact(IsCoprimeI(generator, modulus), <span class="hljs-string">&quot;`generator` and `modulus` must be co-prime&quot;</span>);
+
+     The oracle we use <span class="hljs-keyword">for</span> order finding essentially wraps
+     Microsoft.Quantum.Arithmetic.MultiplyByModularInteger operation
+     that implements |x⟩ ↦ |x⋅a mod N ⟩.
+     We also use Microsoft.Quantum.Math.ExpModI to compute a by which
+     x must be multiplied.
+     Also note that we interpret target <span class="hljs-keyword">as</span> unsigned integer
+     <span class="hljs-keyword">in</span> little-endian encoding by using Microsoft.Quantum.Arithmetic.LittleEndian
+     type.
+    MultiplyByModularInteger(ExpModI(generator, power, modulus), modulus, LittleEndian(target));
+}
+</div></code></pre>
+<p>/ # Summary
+/ Finds a multiplicative order of the generator
+/ in the residue ring Z mod <code>modulus</code>.
+/
+/ # Input
+/ ## generator
+/ The unsigned integer multiplicative order ( period )
+/ of which is being estimated. Must be co-prime to <code>modulus</code>.
+/ ## modulus
+/ The modulus which defines the residue ring Z mod <code>modulus</code>
+/ in which the multiplicative order of <code>generator</code> is being estimated.
+/ ## useRobustPhaseEstimation
+/ If set to true, we use Microsoft.Quantum.Characterization.RobustPhaseEstimation and
+/ Microsoft.Quantum.Characterization.QuantumPhaseEstimation
+/
+/ # Output
+/ The period ( multiplicative order ) of the generator mod <code>modulus</code></p>
+<pre><code class="language-Javascript"><div>operation EstimatePeriod(generator : Int, <span class="hljs-attr">modulus</span> : Int, <span class="hljs-attr">useRobustPhaseEstimation</span> : Bool) : Int {
+     Here we check that the inputs to the EstimatePeriod operation are valid.
+    Fact(IsCoprimeI(generator, modulus), <span class="hljs-string">&quot;`generator` and `modulus` must be co-prime&quot;</span>);
+
+     The variable that stores the divisor <span class="hljs-keyword">of</span> the generator period found so far.
+    mutable result = <span class="hljs-number">1</span>;
+
+     <span class="hljs-built_in">Number</span> <span class="hljs-keyword">of</span> bits <span class="hljs-keyword">in</span> the modulus <span class="hljs-keyword">with</span> respect to which we are estimating the period.
+    let bitsize = BitSizeI(modulus);
+
+     The EstimatePeriod operation estimates the period r by finding an
+     approximation k/<span class="hljs-number">2</span>^(bits precision) to a fraction s/r, where s is some integer.
+     Note that <span class="hljs-keyword">if</span> s and r have common divisors we will end up recovering a divisor <span class="hljs-keyword">of</span> r
+     and not r itself. However, <span class="hljs-keyword">if</span> we recover enough divisors <span class="hljs-keyword">of</span> r
+     we recover r itself pretty soon.
+
+     Number <span class="hljs-keyword">of</span> bits <span class="hljs-keyword">of</span> precision <span class="hljs-keyword">with</span> which we need to estimate s/r to recover period r.
+     using continued fractions algorithm.
+    let bitsPrecision = <span class="hljs-number">2</span> * bitsize + <span class="hljs-number">1</span>;
+
+     A variable that stores our current estimate <span class="hljs-keyword">for</span> the frequency
+     <span class="hljs-keyword">of</span> the form s/r. 
+    mutable frequencyEstimate = <span class="hljs-number">0</span>;
+
+    repeat {
+
+        set frequencyEstimate = EstimateFrequency(
+            generator, modulus, useRobustPhaseEstimation, bitsize 
+        );
+
+        <span class="hljs-keyword">if</span> (frequencyEstimate != <span class="hljs-number">0</span>) {
+            set result = PeriodFromFrequency(modulus,frequencyEstimate, bitsPrecision, result);
+        }
+        <span class="hljs-keyword">else</span> {
+            Message(<span class="hljs-string">&quot;The estimated frequency was 0, trying again.&quot;</span>);
+        }
+    }
+    until(ExpModI(generator, result, modulus) == <span class="hljs-number">1</span>)
+    fixup {
+        Message(<span class="hljs-string">&quot;The estimated period from continued fractions failed, trying again.&quot;</span>);
+    }
+
+    <span class="hljs-keyword">return</span> result;
+}
+</div></code></pre>
+<p>/ # Summary
+/ Estimates the frequency of a generator
+/ in the residue ring Z mod <code>modulus</code>.
+/
+/ # Input
+/ ## generator
+/ The unsigned integer multiplicative order ( period )
+/ of which is being estimated. Must be co-prime to <code>modulus</code>.
+/ ## modulus
+/ The modulus which defines the residue ring Z mod <code>modulus</code>
+/ in which the multiplicative order of <code>generator</code> is being estimated.
+/ ## useRobustPhaseEstimation
+/ If set to true, we use Microsoft.Quantum.Characterization.RobustPhaseEstimation else
+/ this operation uses Microsoft.Quantum.Characterization.QuantumPhaseEstimation
+/ ## bitsize
+/ Number of bits needed to represent the modulus.
+/
+/ # Output
+/ The numerator k of dyadic fraction k/2^bitsPrecision
+/ approximating s/r.</p>
+<pre><code class="language-Javascript"><div>operation EstimateFrequency(generator : Int, <span class="hljs-attr">modulus</span> : Int,<span class="hljs-attr">useRobustPhaseEstimation</span> : Bool, <span class="hljs-attr">bitsize</span> : Int): Int {
+    mutable frequencyEstimate = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">let</span> bitsPrecision =  <span class="hljs-number">2</span> * bitsize + <span class="hljs-number">1</span>;
+    
+     Allocate qubits <span class="hljs-keyword">for</span> the superposition <span class="hljs-keyword">of</span> eigenstates <span class="hljs-keyword">of</span>
+     the oracle that is used <span class="hljs-keyword">in</span> period finding.
+    using (eigenstateRegister = Qubit[bitsize]) {
+
+         Initialize eigenstateRegister to <span class="hljs-number">1</span>, which is a superposition <span class="hljs-keyword">of</span>
+         the eigenstates we are estimating the phases <span class="hljs-keyword">of</span>.
+         We first interpret the register <span class="hljs-keyword">as</span> encoding an unsigned integer
+         <span class="hljs-keyword">in</span> little endian encoding.
+        let eigenstateRegisterLE = LittleEndian(eigenstateRegister);
+        ApplyXorInPlace(<span class="hljs-number">1</span>, eigenstateRegisterLE);
+
+         An oracle <span class="hljs-keyword">of</span> type Microsoft.Quantum.Oracles.DiscreteOracle
+         that we are going to use <span class="hljs-keyword">with</span> phase estimation methods below.
+        let oracle = DiscreteOracle(ApplyOrderFindingOracle(generator, modulus, _, _));
+
+        <span class="hljs-keyword">if</span> (useRobustPhaseEstimation) {
+
+             Use Microsoft.Quantum.Characterization.RobustPhaseEstimation to estimate s/r.
+             RobustPhaseEstimation needs only one extra qubit, but requires
+             several calls to the oracle.
+            let phase = RobustPhaseEstimation(bitsPrecision, oracle, eigenstateRegisterLE!);
+            
+             Compute the numerator k <span class="hljs-keyword">of</span> dyadic fraction k/<span class="hljs-number">2</span>^bitsPrecision
+             approximating s/r. Note that phase estimation projects on the eigenstate
+             corresponding to random s.
+            set frequencyEstimate = Round(((phase * IntAsDouble(<span class="hljs-number">2</span> ^ bitsPrecision)) / <span class="hljs-number">2.0</span>) / PI());
+        }
+        <span class="hljs-keyword">else</span> {
+             Use Microsoft.Quantum.Characterization.QuantumPhaseEstimation to estimate s/r.
+             When using QuantumPhaseEstimation we will need extra <span class="hljs-string">`bitsPrecision`</span>
+             qubits
+            using (register = Qubit[bitsPrecision]) {
+                <span class="hljs-keyword">let</span> frequencyEstimateNumerator = LittleEndian(register);  
+
+                 The register that will contain the numerator k <span class="hljs-keyword">of</span>
+                 dyadic fraction k/<span class="hljs-number">2</span>^bitsPrecision. The numerator is an unsigned
+                 integer encoded <span class="hljs-keyword">in</span> big-endian format. This is indicated by
+                 use <span class="hljs-keyword">of</span> Microsoft.Quantum.Arithmetic.BigEndian type.
+                QuantumPhaseEstimation(
+                    oracle, eigenstateRegisterLE!, LittleEndianAsBigEndian(frequencyEstimateNumerator)
+                ); 
+                
+                 Directly measure the numerator k <span class="hljs-keyword">of</span> dyadic fraction k/<span class="hljs-number">2</span>^bitsPrecision
+                 approximating s/r. Note that phase estimation project on
+                 the eigenstate corresponding to random s.
+                set frequencyEstimate = MeasureInteger(frequencyEstimateNumerator);
+            }
+        }
+        
+         Return all the qubits used <span class="hljs-keyword">for</span> oracle<span class="hljs-string">&#x27;s eigenstate back to 0 state
+         using Microsoft.Quantum.Intrinsic.ResetAll.
+        ResetAll(eigenstateRegister);
+    }
+
+    return frequencyEstimate;
+}
+</span></div></code></pre>
+<p>/ # Summary
+/ Find the period of a number from an input frequency.
+/
+/ # Input
+/ ## modulus
+/ The modulus which defines the residue ring Z mod <code>modulus</code>
+/ in which the multiplicative order of <code>generator</code> is being estimated.
+/ ## frequencyEstimate
+/ The frequency that we want to convert to a period.
+/ ## bitsPrecision
+/ Number of bits of precision with which we need to
+/ estimate s/r to recover period r using continued
+/ fractions algorithm.
+/ ## currentDivisor
+/ The divisor of the generator period found so far.
+/
+/ # Output
+/ The period as calculated from the estimated frequency via
+/ the continued fractions algorithm.
+/
+/ # See Also
+/ - Microsoft.Quantum.Math.ContinuedFractionConvergentI</p>
+<pre><code><code><div>function PeriodFromFrequency(modulus : Int, frequencyEstimate : Int, bitsPrecision : Int, currentDivisor : Int): Int {
+    
+     Now we use Microsoft.Quantum.Math.ContinuedFractionConvergentI
+     function to recover s/r from dyadic fraction k/2^bitsPrecision.
+    let (numerator, period) = (ContinuedFractionConvergentI(Fraction(frequencyEstimate, 2 ^ bitsPrecision), modulus))!;
+    
+     ContinuedFractionConvergentI does not guarantee the signs of the numerator
+     and denominator. Here we make sure that both are positive using
+     AbsI.
+    let (numeratorAbs, periodAbs) = (AbsI(numerator), AbsI(period));
+
+     Return the newly found divisor.
+     Uses Microsoft.Quantum.Math.GreatestCommonDivisorI function from Microsoft.Quantum.Math.
+    return (periodAbs * currentDivisor) / GreatestCommonDivisorI(currentDivisor, periodAbs);
+}
+</div></code></code></pre>
+<h2 id="函数-maybefactorsfromperiod">函数 MaybeFactorsFromPeriod</h2>
+<p>Tries to find the factors of <code>modulus</code> given a <code>period</code> and <code>1generator</code>.</p>
+<h3 id="输入-2">输入</h3>
+<ul>
+<li>
+<p>modulus</p>
+<p>The modulus which defines the residue ring Z mod <code>modulus</code> in which the multiplicative order of <code>generator</code> is being estimated.</p>
+</li>
+<li>
+<p>generator</p>
+<p>The unsigned integer multiplicative order ( period ) of which is being estimated. Must be co-prime to <code>modulus</code>.</p>
+</li>
+<li>
+<p>period</p>
+<p>The estimated period ( multiplicative order ) of the generator mod <code>modulus</code>.</p>
+</li>
+</ul>
+<h3 id="输出-1">输出</h3>
+<p>A tuple of a flag indicating whether factors were found successfully,
+and a pair of integers representing the factors that were found.
+Note that the second output is only meaningful when the first
+output is <code>true</code>.</p>
+<ul>
+<li>
+<p>可以参照</p>
+<p>Microsoft.Quantum.Math.GreatestCommonDivisorI</p>
+</li>
+</ul>
+<h3 id="代码实现">代码实现</h3>
+<pre><code class="language-Javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">MaybeFactorsFromPeriod</span>(<span class="hljs-params">modulus : Int, generator : Int, period : Int</span>) 
+: (<span class="hljs-params">Bool, (Int, Int)</span>) </span>{
+     Period finding reduces to factoring only <span class="hljs-keyword">if</span> period is even
+    <span class="hljs-keyword">if</span> (period % <span class="hljs-number">2</span> == <span class="hljs-number">0</span>) {
+         Compute <span class="hljs-string">`generator`</span> ^ <span class="hljs-string">`period/2`</span> mod $N$
+         using Microsoft.Quantum.Math.ExpModI.
+        let halfPower = ExpModI(generator, period / <span class="hljs-number">2</span>, modulus);
+
+         If we are unlucky, halfPower is just <span class="hljs-number">-1</span> mod N,
+         which is a trivial <span class="hljs-keyword">case</span> and not useful <span class="hljs-keyword">for</span> factoring.
+        if (halfPower != modulus - <span class="hljs-number">1</span>) {
+
+             When the halfPower is not <span class="hljs-number">-1</span> mod N
+             halfPower<span class="hljs-number">-1</span> or halfPower+<span class="hljs-number">1</span> share non-trivial divisor <span class="hljs-keyword">with</span> $N$.
+             We find a divisor Microsoft.Quantum.Math.GreatestCommonDivisorI.
+            let factor = MaxI(
+                GreatestCommonDivisorI(halfPower - <span class="hljs-number">1</span>, modulus), 
+                GreatestCommonDivisorI(halfPower + <span class="hljs-number">1</span>, modulus)
+            );
+            
+             Add a flag that we found the factors, and <span class="hljs-keyword">return</span> computed non-trivial factors.
+            return (<span class="hljs-literal">true</span>, (factor, modulus / factor));
+        } <span class="hljs-keyword">else</span> {
+             Return a flag indicating we hit a trivial <span class="hljs-keyword">case</span> and didn<span class="hljs-string">&#x27;t get any factors.
+            return (false, (1,1));
+        }
+    } else {
+         When period is odd we have to pick another generator to estimate
+         period of and start over.
+        Message(&quot;Estimated period was odd, trying again.&quot;);
+        return (false, (1,1));
+    }
+}
+</span></div></code></pre>
+
+    </body>
+    </html>
