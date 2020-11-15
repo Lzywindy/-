@@ -49,14 +49,23 @@ function CalculatedCost(segmentCosts : Double[], usedSegments : Bool[]) : Double
 这是经典计算方法而非量子方法。
 
 这个方法要通过以下4个约束条件，来判断路径是否满足题设条件：
+
 $$\sum^{5}_{j=0}x_{j}=4$$
+
 $$x_{0}=x_{2}$$
+
 $$x_{1}=x_{3}$$
+
 $$x_{4}=x_{5}$$
+
 #### 输入
+
 ##### numSegments
+
 图中的分段数
+
 ##### usedSegments
+
 使用了哪些段的数组
 #### Output
 ##### output
