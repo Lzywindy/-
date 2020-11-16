@@ -1,41 +1,67 @@
 
 
-# Summary
+
+## 函数 MeasureColor
+
 Read color from a register.
 
-# Input
-## register
-The register of qubits to be measured.
+### 输入
+
+- register
+
+    The register of qubits to be measured.
+
+### 代码
+
 ```javascript
 operation MeasureColor (register : Qubit[]) : Int {
     return MeasureInteger(LittleEndian(register));
 }
 ```
-/// # Summary
-/// Read coloring from a register.
-///
-/// # Input
-/// ## bitsPerColor
-/// Number of bits per color.
-/// ## register
-/// The register of qubits to be measured.
+
+## 函数 MeasureColoring
+
+Read coloring from a register.
+
+### 输入
+
+- bitsPerColor
+
+    Number of bits per color.
+
+- register
+
+    The register of qubits to be measured.
+
+### 代码
+
+```javascript
 operation MeasureColoring (bitsPerColor : Int, register : Qubit[]) : Int[] {
     let numVertices = Length(register) / bitsPerColor;
     let colorPartitions = Partitioned(ConstantArray(numVertices - 1, bitsPerColor), register);
     return ForEach(MeasureColor, colorPartitions);
 } 
+```
 
-/// # Summary
-/// N-bit color equality oracle (no extra qubits.)
-///
-/// # Input
-/// ## color0
-/// First color.
-/// ## color1
-/// Second color.
-///
-/// # Output
-/// Target will be 1 if colors are the same.
+## 函数 ApplyColorEqualityOracle
+N-bit color equality oracle (no extra qubits.)
+
+### 输入
+- color0
+
+    First color.
+
+- color1
+  
+    Second color.
+
+### 输出
+
+Target will be 1 if colors are the same.
+
+### 代码
+
+```javascript
 operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], 
     target : Qubit) : Unit is Adj+Ctl {
     within {
@@ -48,6 +74,7 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
         (ControlledOnInt(0, X))(color1, target);
     }
 }
+```
 
 /// # Summary
 /// Oracle for verifying vertex coloring, including color constraints from
@@ -70,32 +97,33 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
 ///
 /// # Example
 /// Consider the following 4x4 Sudoku puzzle
-/// ``` 
-///     -----------------
-///     |   |   | 2 | 3 |
-///     -----------------
-///     |   |   | 0 | 1 |
-///     -----------------
-///     | 1 | 2 | 3 | 0 |
-///     -----------------
-///     | 3 | 0 | 1 | 2 |
-///     -----------------
-/// ```
+
+``` 
+    -----------------
+    |   |   | 2 | 3 |
+    -----------------
+    |   |   | 0 | 1 |
+    -----------------
+    | 1 | 2 | 3 | 0 |
+    -----------------
+    | 3 | 0 | 1 | 2 |
+    -----------------
+```
 ///  The challenge is to fill the empty squares with numbers 0 to 3
 ///  that are unique in row, column and the top left 2x2 square.
 ///  This is a graph coloring problem where the colors are 0 to 3
 ///  and the empty cells are the vertices. The vertices can be defined as:
-/// ```
-///     -----------------
-///     | 0 | 1 |   |   |
-///     -----------------
-///     | 2 | 3 |   |   |
-///     -----------------
-///     |   |   |   |   |
-///     -----------------
-///     |   |   |   |   |
-///     -----------------
-/// ```
+```
+    -----------------
+    | 0 | 1 |   |   |
+    -----------------
+    | 2 | 3 |   |   |
+    -----------------
+    |   |   |   |   |
+    -----------------
+    |   |   |   |   |
+    -----------------
+```
 /// The graph is
 /// ```
 ///  0---1
@@ -120,6 +148,9 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
 /// and vertex 3 is not allowed to have values 2,0,1
 /// A valid graph coloring solution is: [0,1,2,3]
 /// i.e. vextex 0 has color 0, vertex 1 has color 1 etc.
+### 代码
+
+```javascript
 operation ApplyVertexColoringOracle (numVertices : Int, bitsPerColor : Int, edges : (Int, Int)[],  
     startingColorConstraints : (Int, Int)[], 
     colorsRegister : Qubit[], 
@@ -158,7 +189,7 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
     }
 
 }
-
+```
 /// # Summary
 /// Oracle for verifying vertex coloring, including color constraints 
 /// from non qubit vertices. This is the same as ApplyVertexColoringOracle, 
@@ -184,44 +215,44 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
 ///
 /// # Example
 /// Consider the following 9x9 Sudoku puzzle:
-/// ```
-///    -------------------------------------
-///    |   | 6 | 2 | 7 | 8 | 3 | 4 | 0 | 1 |
-///    -------------------------------------
-///    | 8 |   | 1 | 6 | 2 | 4 | 3 | 7 | 5 |
-///    -------------------------------------
-///    | 7 | 3 | 4 | 5 | 0 | 1 | 8 | 6 | 2 |
-///    -------------------------------------
-///    | 6 | 8 | 7 | 1 | 5 | 0 | 2 | 4 | 3 |
-///    -------------------------------------
-///    | 4 | 1 | 5 | 3 | 6 | 2 | 7 | 8 | 0 |
-///    -------------------------------------
-///    | 0 | 2 | 3 | 4 | 7 | 8 | 1 | 5 | 6 |
-///    -------------------------------------
-///    | 3 | 5 | 8 | 0 | 1 | 7 | 6 | 2 | 4 |
-///    -------------------------------------
-///    | 1 | 7 | 6 | 2 | 4 | 5 | 0 | 3 | 8 |
-///    -------------------------------------
-///    | 2 | 4 | 0 | 8 | 3 | 6 | 5 | 1 | 7 |
-///    -------------------------------------
-/// ```
+```
+   -------------------------------------
+   |   | 6 | 2 | 7 | 8 | 3 | 4 | 0 | 1 |
+   -------------------------------------
+   | 8 |   | 1 | 6 | 2 | 4 | 3 | 7 | 5 |
+   -------------------------------------
+   | 7 | 3 | 4 | 5 | 0 | 1 | 8 | 6 | 2 |
+   -------------------------------------
+   | 6 | 8 | 7 | 1 | 5 | 0 | 2 | 4 | 3 |
+   -------------------------------------
+   | 4 | 1 | 5 | 3 | 6 | 2 | 7 | 8 | 0 |
+   -------------------------------------
+   | 0 | 2 | 3 | 4 | 7 | 8 | 1 | 5 | 6 |
+   -------------------------------------
+   | 3 | 5 | 8 | 0 | 1 | 7 | 6 | 2 | 4 |
+   -------------------------------------
+   | 1 | 7 | 6 | 2 | 4 | 5 | 0 | 3 | 8 |
+   -------------------------------------
+   | 2 | 4 | 0 | 8 | 3 | 6 | 5 | 1 | 7 |
+   -------------------------------------
+```
 ///  The challenge is to fill the empty squares with numbers 0 to 8
 ///  that are unique in row, column and the top left 3x3 square
 ///  This is a graph coloring problem where the colors are 0 to 8
 ///  and the empty cells are the vertices. The vertices can be defined as
-/// ```  
-///     -----------------
-///     | 0 |   |   |   | ...
-///     -----------------
-///     |   | 1 |   |   | ...
-///     -----------------
-///     |   |   |   |   | ...
-///     ...
-/// ```
-/// The graph is
-/// ```
-///     0---1 
-/// ```
+```  
+    -----------------
+    | 0 |   |   |   | ...
+    -----------------
+    |   | 1 |   |   | ...
+    -----------------
+    |   |   |   |   | ...
+    ...
+```
+The graph is
+```
+    0---1 
+```
 /// Additionally, we also require that 
 ///    - vertex 0 can not have value 6,2,7,8,3,4,0,1 (row constraint)
 ///                         or value 8,7,6,4,0,3,1,2 (col constraint)
@@ -235,9 +266,10 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
 /// The colors found must be from 0 to 8, which requires 4 bits per color.
 /// A valid graph coloring solution is: [5,0]
 /// i.e. vextex 0 has color 5, vertex 1 has color 0.
-operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, Int)[],  
-    startingColorConstraints : (Int, Int)[], 
-    colorsRegister : Qubit[], target : Qubit) : Unit is Adj+Ctl {
+### 代码
+
+```javascript
+operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, Int)[],  startingColorConstraints : (Int, Int)[], colorsRegister : Qubit[], target : Qubit) : Unit is Adj+Ctl {
     let nEdges = Length(edges);
     let bitsPerColor = 4; // 4 bits per color
     let nStartingColorConstraints = Length(startingColorConstraints);
@@ -270,7 +302,7 @@ operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, 
         }
     }
 }
-
+```
 /// # Summary
 /// OR oracle for an arbitrary number of qubits in query register.
 ///
@@ -279,6 +311,9 @@ operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, 
 /// Qubit register to query.
 /// ## target
 /// Target qubit for storing oracle result.
+### 代码
+
+```javascript
 operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
     // x₀ ∨ x₁ = ¬ (¬x₀ ∧ ¬x₁)
     // First, flip target if both qubits are in |0⟩ state.
@@ -286,7 +321,7 @@ operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj 
     // Then flip target again to get negation.
     X(target);
 }
-
+```
 /// # Summary
 /// Using Grover's search to find vertex coloring.
 ///
@@ -306,6 +341,9 @@ operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj 
 /// # Remarks
 /// See https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover
 /// for original implementation in SolveSATWithGrover Kata.
+### 代码
+
+```javascript
 operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterations : Int, 
     oracle : ((Qubit[], Qubit) => Unit is Adj)) : Int[] {
     // This task is similar to task 2.2 from SolveSATWithGrover kata, 
@@ -341,7 +379,7 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
     }
     return coloring;
 }
-
+```
 /// # Summary
 /// Grover algorithm loop
 ///
@@ -352,8 +390,10 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
 /// # Remarks
 /// See https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover
 /// for the original implementation from the SolveSATWithGrover kata.
-    operation ApplyPhaseOracle (oracle : ((Qubit[], Qubit) => Unit is Adj), 
-    register : Qubit[]) : Unit is Adj {
+### 代码
+
+```javascript
+operation ApplyPhaseOracle (oracle : ((Qubit[], Qubit) => Unit is Adj), register : Qubit[]) : Unit is Adj {
 
     using (target = Qubit()) {
         within {
@@ -369,7 +409,7 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
         // We put the target back into |0⟩ so we can return it.
     }
 }
-
+```
 /// # Summary
 /// Grover's Algorithm loop.
 ///
@@ -383,6 +423,9 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
 ///
 /// # Output
 /// Unitary implementing Grover's search algorithm.
+### 代码
+
+```javascript
 operation ApplyGroversAlgorithmLoop (register : Qubit[], 
     oracle : ((Qubit[], Qubit) => Unit is Adj), iterations : Int) : Unit {
     let applyPhaseOracle = ApplyPhaseOracle(oracle, _);
@@ -398,6 +441,7 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
         }
     }
 }
+```
 /// # Summary
 /// Solve a Sudoku puzzle using Grover's algorithm.
 ///
@@ -418,17 +462,20 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
 /// This is because we can encode 0-3 with 2 qubits.
 /// However, the same rules apply:
 ///    - The numbers 0 to 3 may only appear once per row, column and 2x2 sub squares.
-/// As an example              has solution
-/// _________________          _________________
-/// |   | 1 |   | 3 |          | 0 | 1 | 2 | 3 |  
-/// -----------------          -----------------
-/// | 2 |   |   | 1 |          | 2 | 3 | 0 | 1 |  
-/// -----------------          -----------------
-/// |   |   | 3 | 0 |          | 1 | 2 | 3 | 0 |  
-/// -----------------          -----------------
-/// | 3 |   | 1 |   |          | 3 | 0 | 1 | 2 |  
-/// -----------------          -----------------
-///
+
+```
+    As an example              has solution
+    _________________          _________________
+    |   | 1 |   | 3 |          | 0 | 1 | 2 | 3 |  
+    -----------------          -----------------
+    | 2 |   |   | 1 |          | 2 | 3 | 0 | 1 |  
+    -----------------          -----------------
+    |   |   | 3 | 0 |          | 1 | 2 | 3 | 0 |  
+    -----------------          -----------------
+    | 3 |   | 1 |   |          | 3 | 0 | 1 | 2 |  
+    -----------------          -----------------
+   
+```
 /// In the above example, the edges/constraints for the top row are:
 ///   _________
 ///  | ______   \                   _____   
@@ -475,15 +522,17 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
 ///
 /// # Remarks
 /// The inputs and outputs for the following 4x4 puzzle are:
-///    -----------------
-///    |   | 1 | 2 | 3 |         <--- empty square #0
-///    -----------------
-///    | 2 |   | 0 | 1 |         <--- empty square #1
-///    -----------------
-///    | 1 | 2 | 3 | 0 |
-///    -----------------
-///    | 3 |   | 1 | 2 |         <--- empty square #2
-///    -----------------
+```
+    -----------------
+    |   | 1 | 2 | 3 |         <--- empty square #0
+    -----------------
+    | 2 |   | 0 | 1 |         <--- empty square #1
+    -----------------
+    | 1 | 2 | 3 | 0 |
+    -----------------
+    | 3 |   | 1 | 2 |         <--- empty square #2
+    -----------------
+```
 ///    emptySquareEdges = [(1, 0),(2, 1)]    
 ///         empty square #0 can not have the same color/number as empty call #1.
 ///         empty square #1 and #2 can not have the same color/number (same column).
@@ -491,6 +540,10 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
 ///         empty square #0 can not have values 2,1,3 because same row/column/2x2grid.
 ///         empty square #1 can not have values 1,2,0 because same row/column/2x2grid.
 ///    Results = [0,3,0] i.e. Empty Square #0 = 0, Empty Square #1 = 3, Empty Square #2 = 0.
+
+### 代码
+
+```javascript
 operation SolvePuzzle(numVertices : Int, size : Int, emptySquareEdges : (Int, Int)[], 
     startingNumberConstraints: (Int, Int)[]) : (Bool, Int[]) {
     // for size = 4x4 grid
@@ -526,18 +579,23 @@ operation SolvePuzzle(numVertices : Int, size : Int, emptySquareEdges : (Int, In
         return (false, coloring);
     }
 }
+```
 
-/// # Summary
-/// Estimate the number of interations required for solution.
-///
-/// # Input
-/// ## nQubits
-/// The number of qubits being used.
-///
-/// # Remarks
-/// This is correct for an amplitude amplification problem with a single 
-/// correct solution, but would need to be adapted when there are multiple
-/// solutions
+## 函数 NIterations
+
+Estimate the number of interations required for solution.
+
+### 输入
+
+- nQubits
+
+    The number of qubits being used.
+
+### 评述
+
+This is correct for an amplitude amplification problem with a single correct solution, but would need to be adapted when there are multiple solutions
+
+### 代码
 
 ```javascript
 function NIterations(nQubits : Int) : Int {
@@ -548,29 +606,36 @@ function NIterations(nQubits : Int) : Int {
     return nIterations;
 }
 ```
-# Summary
-Check if the colors/numbers found for each empty square are in the correct 
-range (e.g. <9 for a 9x9 puzzle) and satisfy all edge/starting number constraints.
+## 函数 IsSudokuSolutionValid
 
-# Input
-## size
-The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
-## edges
-The traditional edges passed to the graph coloring algorithm which, 
-in our case, are empty puzzle squares.
-These edges define any "same row", "same column", "same sub-grid" 
-relationships between empty cells.
-Look at the README.md sample output to see examples of what this is 
-for different sample puzzles.
-## startingNumberConstraints
-The constraints on the empty squares due to numbers already in the 
-puzzle when we start. Look at the README.md sample output to see 
-examples of what this is for different sample puzzles.
-## colors
-An Int array of numbers for each empty square i.e. the puzzle solution.
+Check if the colors/numbers found for each empty square are in the correct range (e.g. <9 for a 9x9 puzzle) and satisfy all edge/starting number constraints.
 
-# Output
+### Input
+
+- size
+    
+    The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
+
+- edges
+ 
+    The traditional edges passed to the graph coloring algorithm which, in our case, are empty puzzle squares.
+
+    These edges define any "same row", "same column", "same sub-grid" relationships between empty cells.
+
+- startingNumberConstraints
+
+    The constraints on the empty squares due to numbers already in the puzzle when we start. 
+
+- colors
+
+    An Int array of numbers for each empty square i.e. the puzzle solution.
+
+### Output
+
 A boolean value of true if the colors found satisfy all the solution requirements.
+
+### 代码
+
 ```javascript
 function IsSudokuSolutionValid (size : Int, edges : (Int, Int)[], 
     startingNumberConstraints : (Int, Int)[], colors : Int[]) : Bool {
