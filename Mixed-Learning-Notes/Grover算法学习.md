@@ -339,7 +339,7 @@ operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj 
 /// Int Array giving the color of each vertex.
 ///
 /// # Remarks
-/// See https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover
+/// See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
 /// for original implementation in SolveSATWithGrover Kata.
 ### 代码
 
