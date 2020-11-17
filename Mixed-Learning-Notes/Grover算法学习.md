@@ -28,11 +28,11 @@ operation MeasureColor (register : Qubit[]) : Int {
 
 - bitsPerColor
 
-    Number of bits per color.
+    每种颜色的位数。
 
 - register
 
-    The register of qubits to be measured.
+    要测量的量子位寄存器。
 
 ### 代码
 
@@ -68,11 +68,11 @@ N位颜色等价oracle（无需额外的量子位）
 operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], target : Qubit) : Unit is Adj+Ctl {
     within {
         for ((q0, q1) in Zip(color0, color1)) {
-            // compute XOR of q0 and q1 in place (storing it in q1).
+            //q1<=q0 XOR q1 
             CNOT(q0, q1);
         }
     } apply {
-        // if all XORs are 0, the bit strings are equal.
+        //如果观测出来全为0，则表示两个寄存器中的值相等
         (ControlledOnInt(0, X))(color1, target);
     }
 }
@@ -80,26 +80,75 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], target :
 
 ## 函数 ApplyVertexColoringOracle
 
-Oracle for verifying vertex coloring, including color constraints from
-non qubit vertices.
+验证顶点着色的`Oracle`，包括非量子位顶点的颜色约束。
 
-# Input
-## numVertices
-The number of vertices in the graph.
-## bitsPerColor
-The bits per color e.g. 2 bits per color allows for 4 colors.
-## edges
-The array of (Vertex#,Vertex#) specifying the Vertices that can not be
-the same color.
-## startingColorConstraints
-The array of (Vertex#,Color) specifying the dissallowed colors for vertices.
+### 输入
 
-# Output
-A unitary operation that applies `oracle` on the target register if the control 
-register state corresponds to the bit mask `bits`.
+- numVertices
 
-# Example
-Consider the following 4x4 Sudoku puzzle
+    图中顶点的数目。
+
+- bitsPerColor
+
+    每种颜色的位数，例如每种颜色2位，允许4种颜色。
+
+- edges
+
+    （Vertex#，Vertex#）数组，指定不同颜色的顶点。
+
+- startingColorConstraints
+
+    指定顶点不允许的颜色的数组（Vertex#，Color）。
+
+### 输出
+
+如果控制寄存器状态与位掩码`bits`相对应，则对目标寄存器应用`oracle`操作。
+
+### 代码
+
+```javascript
+operation ApplyVertexColoringOracle (numVertices : Int, bitsPerColor : Int, edges : (Int, Int)[],  
+    startingColorConstraints : (Int, Int)[], 
+    colorsRegister : Qubit[], 
+    target : Qubit) : Unit is Adj+Ctl {
+    let nEdges = Length(edges);
+    let nStartingColorConstraints = Length(startingColorConstraints);
+    // 我们正在寻找一种解决方案：
+    // (a) 没有两端颜色相同的边 
+    // (b) 没有颜色违反起始颜色约束的顶点
+    using ((edgeConflictQubits, startingColorConflictQubits) = (Qubit[nEdges], Qubit[nStartingColorConstraints])) {
+        within {
+            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
+        } apply {
+            // 如果没有冲突（所有量子位都处于0状态），则顶点着色是有效的。
+            (ControlledOnInt(0, X))(edgeConflictQubits + startingColorConflictQubits, target);
+        }
+    }
+}
+//按边和起始颜色约束进行约束
+operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (Int, Int)[], startingColorConstraints : (Int, Int)[],
+    edgeConflictQubits : Qubit[], startingColorConflictQubits : Qubit[], bitsPerColor: Int): Unit is Adj+Ctl {
+    for (((start, end), conflictQubit) in Zip(edges, edgeConflictQubits)) {
+        // 检查边的端点是否具有不同的颜色：
+        // 应用ColorEqualityOracle_Nbit `oracle`；
+        // 如果颜色相同，结果为1，表示冲突
+        ApplyColorEqualityOracle(
+            colorsRegister[start * bitsPerColor .. (start + 1) * bitsPerColor - 1], colorsRegister[end * bitsPerColor .. (end + 1) * bitsPerColor - 1], conflictQubit);
+    }
+    for (((cell, value), conflictQubit) in 
+        Zip(startingColorConstraints, startingColorConflictQubits)) {
+        // 检查单元格是否与起始颜色冲突。
+        (ControlledOnInt(value, X))(colorsRegister[
+            cell * bitsPerColor .. (cell + 1) * bitsPerColor - 1], conflictQubit);
+    }
+
+}
+
+```
+
+### 举个例子
+
+这是个 4x4 的数独谜题：
 
 ``` 
     -----------------
@@ -112,10 +161,9 @@ Consider the following 4x4 Sudoku puzzle
     | 3 | 0 | 1 | 2 |
     -----------------
 ```
-The challenge is to fill the empty squares with numbers 0 to 3
-that are unique in row, column and the top left 2x2 square.
-This is a graph coloring problem where the colors are 0 to 3
-and the empty cells are the vertices. The vertices can be defined as:
+
+挑战是用0到3的数字填充空正方形，这些数字在行、列和左上角2x2平方中是唯一的。这是一个图着色问题，其中颜色为0到3，空单元格是顶点。顶点可以定义为：
+
 ```
     -----------------
     | 0 | 1 |   |   |
@@ -127,12 +175,13 @@ and the empty cells are the vertices. The vertices can be defined as:
     |   |   |   |   |
     -----------------
 
-The graph is
+图可以表示为这个
 
  0---1
  | X |
  1---2
 ```
+
 i.e. every vertex is connected to each other.
 Additionally, we require that:
 
@@ -140,59 +189,23 @@ Additionally, we require that:
    - vertices 2 and 3 do not get colors 3 and 0.
    - vertices 0 and 2 do not get colors 1 and 3.
    - vertices 1 and 3 do not get colors 2 and 0.
+
 This results in edges (vertices that can not be same color):
 `edges = [(1, 0),(2, 0),(3, 0),(3, 1),(3, 2)]`
+
 This is saying that vertex 1 can not have same color as vertex 0 etc.
 
-and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),
-(1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]
+and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),(1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]
 
-This is saying that vertex 0 is not allowed to have values 1,3,2
-and vertex 1 is not allowed to have values 2,0,3
-and vertex 2 is not allowed to have values 1,3,0
-and vertex 3 is not allowed to have values 2,0,1
+This is saying that:
+
+- vertex 0 is not allowed to have values 1,3,2
+- vertex 1 is not allowed to have values 2,0,3
+- vertex 2 is not allowed to have values 1,3,0
+- vertex 3 is not allowed to have values 2,0,1
 
 A valid graph coloring solution is: [0,1,2,3] i.e. vextex 0 has color 0, vertex 1 has color 1 etc.
-### 代码
 
-```javascript
-operation ApplyVertexColoringOracle (numVertices : Int, bitsPerColor : Int, edges : (Int, Int)[],  
-    startingColorConstraints : (Int, Int)[], 
-    colorsRegister : Qubit[], 
-    target : Qubit) : Unit is Adj+Ctl {
-    let nEdges = Length(edges);
-    let nStartingColorConstraints = Length(startingColorConstraints);
-    // we are looking for a solution that:
-    // (a) has no edge with same color at both ends and 
-    // (b) has no Vertex with a color that violates the starting color constraints.
-    using ((edgeConflictQubits, startingColorConflictQubits) = (Qubit[nEdges], Qubit[nStartingColorConstraints])) {
-        within {
-            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
-        } apply {
-            // If there are no conflicts (all qubits are in 0 state), the vertex coloring is valid.
-            (ControlledOnInt(0, X))(edgeConflictQubits + startingColorConflictQubits, target);
-        }
-    }
-}
-
-operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (Int, Int)[], startingColorConstraints : (Int, Int)[],
-    edgeConflictQubits : Qubit[], startingColorConflictQubits : Qubit[], bitsPerColor: Int): Unit is Adj+Ctl {
-    for (((start, end), conflictQubit) in Zip(edges, edgeConflictQubits)) {
-        // Check that endpoints of the edge have different colors:
-        // apply ColorEqualityOracle_Nbit oracle; 
-        // if the colors are the same the result will be 1, indicating a conflict
-        ApplyColorEqualityOracle(
-            colorsRegister[start * bitsPerColor .. (start + 1) * bitsPerColor - 1], colorsRegister[end * bitsPerColor .. (end + 1) * bitsPerColor - 1], conflictQubit);
-    }
-    for (((cell, value), conflictQubit) in 
-        Zip(startingColorConstraints, startingColorConflictQubits)) {
-        // Check that cell does not clash with starting colors.
-        (ControlledOnInt(value, X))(colorsRegister[
-            cell * bitsPerColor .. (cell + 1) * bitsPerColor - 1], conflictQubit);
-    }
-
-}
-```
 # Summary
 Oracle for verifying vertex coloring, including color constraints 
 from non qubit vertices. This is the same as ApplyVertexColoringOracle, 
@@ -594,24 +607,24 @@ operation SolvePuzzle(numVertices : Int, size : Int, emptySquareEdges : (Int, In
 
 ## 函数 NIterations
 
-Estimate the number of interations required for solution.
+估计求解所需的迭代次数。
 
 ### 输入
 
 - nQubits
 
-    The number of qubits being used.
+    正在使用的量子位数。
 
 ### 评述
 
-This is correct for an amplitude amplification problem with a single correct solution, but would need to be adapted when there are multiple solutions
+对于振幅放大问题，只有一个正确的解决方案，这是正确的，但需要在有多个解决方案时进行调整。
 
 ### 代码
 
 ```javascript
 function NIterations(nQubits : Int) : Int {
     let nItems = 1 <<< nQubits; // 2^numQubits
-    // compute number of iterations:
+    // 计算迭代次数
     let angle = ArcSin(1. / Sqrt(IntAsDouble(nItems)));
     let nIterations = Round(0.25 * PI() / angle - 0.5);
     return nIterations;
@@ -619,31 +632,32 @@ function NIterations(nQubits : Int) : Int {
 ```
 ## 函数 IsSudokuSolutionValid
 
-Check if the colors/numbers found for each empty square are in the correct range (e.g. <9 for a 9x9 puzzle) and satisfy all edge/starting number constraints.
+检验填在空白位置的数字是否符合数独规则——满足行列的约束。
 
-### Input
+### 输入
 
 - size
     
-    The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
+    数独大小。
 
 - edges
  
-    The traditional edges passed to the graph coloring algorithm which, in our case, are empty puzzle squares.
+    传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。
 
-    These edges define any "same row", "same column", "same sub-grid" relationships between empty cells.
+    这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。
 
 - startingNumberConstraints
 
-    The constraints on the empty squares due to numbers already in the puzzle when we start. 
+    当我们开始的时候，由于数字已经在拼图中，对空格子的限制。
 
 - colors
 
-    An Int array of numbers for each empty square i.e. the puzzle solution.
+    每个空格的整数数组，即数独的解。
+    
 
-### Output
+### 输出
 
-A boolean value of true if the colors found satisfy all the solution requirements.
+如果符合数独规则，那么返回`真`。
 
 ### 代码
 
