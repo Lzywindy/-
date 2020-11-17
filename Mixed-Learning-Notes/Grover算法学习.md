@@ -41,7 +41,7 @@ operation MeasureColoring (bitsPerColor : Int, register : Qubit[]) : Int[] {
     let numVertices = Length(register) / bitsPerColor;
     let colorPartitions = Partitioned(ConstantArray(numVertices - 1, bitsPerColor), register);
     return ForEach(MeasureColor, colorPartitions);
-} 
+}
 ```
 
 ## 函数 ApplyColorEqualityOracle
@@ -68,7 +68,7 @@ N位颜色等价oracle（无需额外的量子位）
 operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], target : Qubit) : Unit is Adj+Ctl {
     within {
         for ((q0, q1) in Zip(color0, color1)) {
-            //q1<=q0 XOR q1 
+            //q1<=q0 XOR q1
             CNOT(q0, q1);
         }
     } apply {
@@ -135,7 +135,7 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
         ApplyColorEqualityOracle(
             colorsRegister[start * bitsPerColor .. (start + 1) * bitsPerColor - 1], colorsRegister[end * bitsPerColor .. (end + 1) * bitsPerColor - 1], conflictQubit);
     }
-    for (((cell, value), conflictQubit) in 
+    for (((cell, value), conflictQubit) in
         Zip(startingColorConstraints, startingColorConflictQubits)) {
         // 检查单元格是否与起始颜色冲突。
         (ControlledOnInt(value, X))(colorsRegister[
@@ -319,69 +319,87 @@ operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, 
     }
 }
 ```
-# Summary
-OR oracle for an arbitrary number of qubits in query register.
 
-# Inputs
-## queryRegister
-Qubit register to query.
-## target
-Target qubit for storing oracle result.
+## 函数 ApplyOrOracle
+
+用于查询寄存器中任意数量的量子位的OR oracle。
+
+### 输入
+
+- queryRegister
+
+    要查询的Qubit寄存器。
+
+- target
+
+    用于存储oracle结果的目标量子位。
+
 ### 代码
 
 ```javascript
-operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj {        
+operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj {
     // x₀ ∨ x₁ = ¬ (¬x₀ ∧ ¬x₁)
-    // First, flip target if both qubits are in |0⟩ state.
+    // 首先，如果两个量子位都处于| 0⟩状态，则翻转目标。
     (ControlledOnInt(0, X))(queryRegister, target);
-    // Then flip target again to get negation.
+    // 然后再次翻转目标取反。
     X(target);
 }
 ```
-# Summary
-Using Grover's search to find vertex coloring.
 
-# Input
-## numVertices
-The number of Vertices in the graph.
-## bitsPerColor
-The number of bits per color.
-## maxIterations
-An estimate of the maximum iterations needed.
-## oracle
-The Oracle used to find solution.
+## 函数 FindColorsWithGrover
 
-# Output
-Int Array giving the color of each vertex.
+用Grover的搜索寻找顶点着色。
 
-# Remarks
-See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
-for original implementation in SolveSATWithGrover Kata.
+### 输入
+
+- numVertices
+
+    图中顶点的数目。
+
+- bitsPerColor
+
+    每种颜色的位数。
+
+- maxIterations
+
+    估计所需的最大迭代次数。
+
+- oracle
+
+    用于寻找解的`oracle`
+
+### 输出
+
+提供每个顶点颜色的Int数组。
+
+### 提示
+
+SolveSATWithGrover Kata中的原始实现请查看[https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]。
+
 ### 代码
 
 ```javascript
-operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterations : Int, 
-    oracle : ((Qubit[], Qubit) => Unit is Adj)) : Int[] {
-    // This task is similar to task 2.2 from SolveSATWithGrover kata, 
-    // but the percentage of correct solutions is potentially higher.
+operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterations : Int,oracle : ((Qubit[], Qubit) => Unit is Adj)) : Int[] {
+    // 此任务类似于SolveSATWithGrover kata的2.2版本，
+    // 但正确解决方案的百分比可能更高。
     mutable coloring = new Int[numVertices];
 
-    // Note that coloring register has the number of qubits that is 
-    // twice the number of vertices (bitsPerColor qubits per vertex).
+    // 注意，着色寄存器的量子比特数是顶点数的两倍
+    //（每个顶点的比特数或量子比特数）。
     using ((register, output) = (Qubit[bitsPerColor * numVertices], Qubit())) {
         mutable correct = false;
         mutable iter = 1;
-        // Try for one iteration, if it fails, try again for one more iteration and repeat until maxIterations is reached.
+        // 尝试一次迭代，如果失败，则再次尝试一次迭代并重复，
+        // 直到达到最大迭代次数。
         repeat {
             Message($"Trying search with {iter} iterations...");
             ApplyGroversAlgorithmLoop(register, oracle, iter);
             let res = MultiM(register);
-            // to check whether the result is correct, apply the oracle to the 
-            // register plus auxiliary after measurement.
+            // 若要检查结果是否正确，请在测量后对寄存器加辅助项应用oracle。
             oracle(register, output);
             if (MResetZ(output) == One) {
                 set correct = true;
-                // Read off coloring.
+                // 读出颜色。
                 set coloring = MeasureColoring(bitsPerColor, register);
             }
             ResetAll(register);
@@ -396,16 +414,21 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
     return coloring;
 }
 ```
-# Summary
-Grover algorithm loop
 
-# Input
-## oracle
-The oracle which will mark the valid solutions.
+## 函数 ApplyPhaseOracle
 
-# Remarks
-See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
-for the original implementation from the SolveSATWithGrover kata.
+Grover算法迭代循环
+
+### 输入
+
+- oracle
+
+    `Oracle`将标记有效的解决方案。
+
+### 提示
+
+SolveSATWithGrover Kata中的原始实现请查看[https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]。
+
 ### 代码
 
 ```javascript
@@ -413,32 +436,41 @@ operation ApplyPhaseOracle (oracle : ((Qubit[], Qubit) => Unit is Adj), register
 
     using (target = Qubit()) {
         within {
-            // Put the target into the |-⟩ state.
+            // 将目标置于|-⟩状态。
             X(target);
             H(target);
         } apply {
-            // Apply the marking oracle; since the target is in the |-⟩ state,
-            // flipping the target if the register satisfies the oracle condition 
-            // will apply a -1 factor to the state.
+            // 应用标记oracle；由于目标处于|-⟩状态，
+            // 如果寄存器满足oracle条件，则翻转目标将对状态应用-1因子。
             oracle(register, target);
         }
-        // We put the target back into |0⟩ so we can return it.
+        //我们把目标放回|0⟩这样我们就可以把它放回去了。
     }
 }
 ```
-# Summary
-Grover's Algorithm loop.
 
-# Input
-## register
-The register of qubits.
-## oracle
-The oracle defining the solution we want.
-## iterations
-The number of iterations to try.
+## 函数 ApplyGroversAlgorithmLoop
 
-# Output
-Unitary implementing Grover's search algorithm.
+使用Grover算法迭代循环.
+
+### 输入
+
+- register
+
+    量子比特的寄存器。
+
+- oracle
+
+    `量子黑箱`定义了解决方案。
+
+- iterations
+
+    要尝试的迭代次数。
+
+### 输出
+
+单一实现Grover搜索算法。
+
 ### 代码
 
 ```javascript
@@ -446,7 +478,6 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
     oracle : ((Qubit[], Qubit) => Unit is Adj), iterations : Int) : Unit {
     let applyPhaseOracle = ApplyPhaseOracle(oracle, _);
     ApplyToEach(H, register);
-        
     for (_ in 1 .. iterations) {
         applyPhaseOracle(register);
         within {
@@ -458,10 +489,83 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
     }
 }
 ```
+
+## 函数 NIterations
+
+估计求解所需的迭代次数。
+
+### 输入
+
+- nQubits
+
+    正在使用的量子位数。
+
+### 评述
+
+对于振幅放大问题，只有一个正确的解决方案，这是正确的，但需要在有多个解决方案时进行调整。
+
+### 代码
+
+```javascript
+function NIterations(nQubits : Int) : Int {
+    let nItems = 1 <<< nQubits; // 2^numQubits
+    // 计算迭代次数
+    let angle = ArcSin(1. / Sqrt(IntAsDouble(nItems)));
+    let nIterations = Round(0.25 * PI() / angle - 0.5);
+    return nIterations;
+}
+```
+
+## 函数 IsSudokuSolutionValid
+
+检验填在空白位置的数字是否符合数独规则——满足行列的约束。
+
+### 输入
+
+- size
+
+    数独大小。
+
+- edges
+
+    传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。
+
+    这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。
+
+- startingNumberConstraints
+
+    当我们开始的时候，由于数字已经在拼图中，对空格子的限制。
+
+- colors
+
+    每个空格的整数数组，即数独的解。
+
+### 输出
+
+如果符合数独规则，那么返回`真`。
+
+### 代码
+
+```javascript
+function IsSudokuSolutionValid (size : Int, edges : (Int, Int)[],startingNumberConstraints : (Int, Int)[], colors : Int[]) : Bool 
+{
+    if (Any(GreaterThanOrEqualI(_, size), colors)) { return false; }
+    if (Any(EqualI, edges)) { return false; }
+    for ((index, startingNumber) in startingNumberConstraints) {
+        if (colors[index] == startingNumber) {
+            return false;
+        }
+    }
+    return true;
+}
+```
+
 # Summary
+
 Solve a Sudoku puzzle using Grover's algorithm.
 
 # Description
+
 Sudoku is a graph coloring problem where graph edges must connect nodes of different colors. In our case, graph nodes are puzzle squares and colors are the Sudoku numbers. Graph edges are the constraints preventing squares from having the same values. To reduce the number of qubits needed, we only use qubits for empty squares.
 We define the puzzle using 2 data structures:
 
@@ -516,31 +620,32 @@ startingNumberConstraints = (0,1)  (0,3)  (1,1)  (1,3)
 This is a list of (empty square #, number it can't be).
 i.e. empty square 0 can't have value 1 or 3, and empty square #1 can't have values 1 or 3.
 
-# Input
-## numVertices
-number of blank squares.
-## size
-The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
-## emptySquareEdges
-The traditional edges passed to the graph coloring algorithm which, 
-in our case, are empty puzzle squares.
-These edges define any "same row", "same column", "same sub-grid" 
-relationships between empty cells.
-Look at the README.md sample output to see examples of what this is 
-for different sample puzzles.
-## startingNumberConstraints
-The constraints on the empty squares due to numbers already in the 
-puzzle when we start.
-Look at the README.md sample output to see examples of what this is 
-for different sample puzzles.
+### 输入
 
-# Output
-A tuple with Result and the array of numbers for each empty square.
-Look at the README.md sample output to see examples of what this is 
-for different sample puzzles.
+- numVertices
 
-# Remarks
-The inputs and outputs for the following 4x4 puzzle are:
+    空白方块数。
+
+- size
+
+    数独的大小。4个用于4x4格，9个用于9x9格。
+
+- emptySquareEdges
+
+    传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。
+
+- startingNumberConstraints
+
+    当我们开始的时候，由于数字已经在数独中，对空方块的限制。
+
+### 输出
+
+一个包含结果和每个空正方形的数字数组的元组。
+
+### 提示
+
+以下4x4数独的输入和输出是：
+
 ```
     -----------------
     |   | 1 | 2 | 3 |         <--- empty square #0
@@ -553,17 +658,13 @@ The inputs and outputs for the following 4x4 puzzle are:
     -----------------
 ```
 
-emptySquareEdges = [(1, 0),(2, 1)] empty square #0 can not have the same color/number as empty call #1.
-
-empty square #1 and #2 can not have the same color/number (same column).
+emptySquareEdges = [(1, 0),(2, 1)] 空格 #0 不能够和 #1 有相同的颜色或者数字，空格 #1 不能够和 #2 有相同的颜色或者数字。
 
 startingNumberConstraints = [(0, 2),(0, 1),(0, 3),(1, 1),(1, 2),(1, 0),(2, 1),(2, 2),(2, 3)]
 
-empty square #0 can not have values 2,1,3 because same row/column/2x2grid.
+空格 #0 不能够和 2,1,3 有相同的颜色或者数字或者在同一个2x2的方格中，空格 #1 不能够和 1,2,0 有相同的颜色或者数字或者在同一个2x2的方格中.
 
-empty square #1 can not have values 1,2,0 because same row/column/2x2grid.
-
-Results = [0,3,0] i.e. Empty Square #0 = 0, Empty Square #1 = 3, Empty Square #2 = 0.
+Results = [0,3,0] ，即空格 #0 = 0, 空格 #1 = 3, 空格 #2 = 0.
 
 ### 代码
 
@@ -602,75 +703,5 @@ operation SolvePuzzle(numVertices : Int, size : Int, emptySquareEdges : (Int, In
         Message($"Got invalid Sudoku solution: {coloring}");
         return (false, coloring);
     }
-}
-```
-
-## 函数 NIterations
-
-估计求解所需的迭代次数。
-
-### 输入
-
-- nQubits
-
-    正在使用的量子位数。
-
-### 评述
-
-对于振幅放大问题，只有一个正确的解决方案，这是正确的，但需要在有多个解决方案时进行调整。
-
-### 代码
-
-```javascript
-function NIterations(nQubits : Int) : Int {
-    let nItems = 1 <<< nQubits; // 2^numQubits
-    // 计算迭代次数
-    let angle = ArcSin(1. / Sqrt(IntAsDouble(nItems)));
-    let nIterations = Round(0.25 * PI() / angle - 0.5);
-    return nIterations;
-}
-```
-## 函数 IsSudokuSolutionValid
-
-检验填在空白位置的数字是否符合数独规则——满足行列的约束。
-
-### 输入
-
-- size
-    
-    数独大小。
-
-- edges
- 
-    传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。
-
-    这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。
-
-- startingNumberConstraints
-
-    当我们开始的时候，由于数字已经在拼图中，对空格子的限制。
-
-- colors
-
-    每个空格的整数数组，即数独的解。
-    
-
-### 输出
-
-如果符合数独规则，那么返回`真`。
-
-### 代码
-
-```javascript
-function IsSudokuSolutionValid (size : Int, edges : (Int, Int)[], 
-    startingNumberConstraints : (Int, Int)[], colors : Int[]) : Bool {
-    if (Any(GreaterThanOrEqualI(_, size), colors)) { return false; }
-    if (Any(EqualI, edges)) { return false; }
-    for ((index, startingNumber) in startingNumberConstraints) {
-        if (colors[index] == startingNumber) {
-            return false;
-        }
-    }
-    return true;
 }
 ```
