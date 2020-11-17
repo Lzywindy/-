@@ -1,15 +1,16 @@
 
 
+# 测量寄存器
 
 ## 函数 MeasureColor
 
-Read color from a register.
+测量量程寄存器的内容并将其转换为颜色（整数）。
 
 ### 输入
 
 - register
 
-    The register of qubits to be measured.
+    要测量的量子位寄存器。
 
 ### 代码
 
@@ -21,7 +22,7 @@ operation MeasureColor (register : Qubit[]) : Int {
 
 ## 函数 MeasureColoring
 
-Read coloring from a register.
+从寄存器中读取颜色。
 
 ### 输入
 
@@ -44,26 +45,27 @@ operation MeasureColoring (bitsPerColor : Int, register : Qubit[]) : Int[] {
 ```
 
 ## 函数 ApplyColorEqualityOracle
-N-bit color equality oracle (no extra qubits.)
+
+N位颜色等价oracle（无需额外的量子位）
 
 ### 输入
+
 - color0
 
-    First color.
+    第一个颜色。
 
 - color1
   
-    Second color.
+    第二个颜色。
 
 ### 输出
 
-Target will be 1 if colors are the same.
+两个颜色一样，则输出为1。
 
 ### 代码
 
 ```javascript
-operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], 
-    target : Qubit) : Unit is Adj+Ctl {
+operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[], target : Qubit) : Unit is Adj+Ctl {
     within {
         for ((q0, q1) in Zip(color0, color1)) {
             // compute XOR of q0 and q1 in place (storing it in q1).
@@ -76,27 +78,28 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
 }
 ```
 
-/// # Summary
-/// Oracle for verifying vertex coloring, including color constraints from
-/// non qubit vertices.
-///
-/// # Input
-/// ## numVertices
-/// The number of vertices in the graph.
-/// ## bitsPerColor
-/// The bits per color e.g. 2 bits per color allows for 4 colors.
-/// ## edges
-/// The array of (Vertex#,Vertex#) specifying the Vertices that can not be
-/// the same color.
-/// ## startingColorConstraints
-/// The array of (Vertex#,Color) specifying the dissallowed colors for vertices.
-///
-/// # Output
-/// A unitary operation that applies `oracle` on the target register if the control 
-/// register state corresponds to the bit mask `bits`.
-///
-/// # Example
-/// Consider the following 4x4 Sudoku puzzle
+## 函数 ApplyVertexColoringOracle
+
+Oracle for verifying vertex coloring, including color constraints from
+non qubit vertices.
+
+# Input
+## numVertices
+The number of vertices in the graph.
+## bitsPerColor
+The bits per color e.g. 2 bits per color allows for 4 colors.
+## edges
+The array of (Vertex#,Vertex#) specifying the Vertices that can not be
+the same color.
+## startingColorConstraints
+The array of (Vertex#,Color) specifying the dissallowed colors for vertices.
+
+# Output
+A unitary operation that applies `oracle` on the target register if the control 
+register state corresponds to the bit mask `bits`.
+
+# Example
+Consider the following 4x4 Sudoku puzzle
 
 ``` 
     -----------------
@@ -109,10 +112,10 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
     | 3 | 0 | 1 | 2 |
     -----------------
 ```
-///  The challenge is to fill the empty squares with numbers 0 to 3
-///  that are unique in row, column and the top left 2x2 square.
-///  This is a graph coloring problem where the colors are 0 to 3
-///  and the empty cells are the vertices. The vertices can be defined as:
+The challenge is to fill the empty squares with numbers 0 to 3
+that are unique in row, column and the top left 2x2 square.
+This is a graph coloring problem where the colors are 0 to 3
+and the empty cells are the vertices. The vertices can be defined as:
 ```
     -----------------
     | 0 | 1 |   |   |
@@ -123,31 +126,33 @@ operation ApplyColorEqualityOracle (color0 : Qubit[], color1 : Qubit[],
     -----------------
     |   |   |   |   |
     -----------------
+
+The graph is
+
+ 0---1
+ | X |
+ 1---2
 ```
-/// The graph is
-/// ```
-///  0---1
-///  | X |
-///  1---2
-/// ```
-/// i.e. every vertex is connected to each other.
-/// Additionally, we require that:
-///
-///    - vertices 0 and 1 do not get colors 2 and 3.
-///    - vertices 2 and 3 do not get colors 3 and 0.
-///    - vertices 0 and 2 do not get colors 1 and 3.
-///    - vertices 1 and 3 do not get colors 2 and 0.
-/// This results in edges (vertices that can not be same color):
-/// `edges = [(1, 0),(2, 0),(3, 0),(3, 1),(3, 2)]`
-/// This is saying that vertex 1 can not have same color as vertex 0 etc.
-/// and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),
-///                    (1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]
-/// This is saying that vertex 0 is not allowed to have values 1,3,2
-/// and vertex 1 is not allowed to have values 2,0,3
-/// and vertex 2 is not allowed to have values 1,3,0
-/// and vertex 3 is not allowed to have values 2,0,1
-/// A valid graph coloring solution is: [0,1,2,3]
-/// i.e. vextex 0 has color 0, vertex 1 has color 1 etc.
+i.e. every vertex is connected to each other.
+Additionally, we require that:
+
+   - vertices 0 and 1 do not get colors 2 and 3.
+   - vertices 2 and 3 do not get colors 3 and 0.
+   - vertices 0 and 2 do not get colors 1 and 3.
+   - vertices 1 and 3 do not get colors 2 and 0.
+This results in edges (vertices that can not be same color):
+`edges = [(1, 0),(2, 0),(3, 0),(3, 1),(3, 2)]`
+This is saying that vertex 1 can not have same color as vertex 0 etc.
+
+and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),
+(1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]
+
+This is saying that vertex 0 is not allowed to have values 1,3,2
+and vertex 1 is not allowed to have values 2,0,3
+and vertex 2 is not allowed to have values 1,3,0
+and vertex 3 is not allowed to have values 2,0,1
+
+A valid graph coloring solution is: [0,1,2,3] i.e. vextex 0 has color 0, vertex 1 has color 1 etc.
 ### 代码
 
 ```javascript
@@ -162,8 +167,7 @@ operation ApplyVertexColoringOracle (numVertices : Int, bitsPerColor : Int, edge
     // (b) has no Vertex with a color that violates the starting color constraints.
     using ((edgeConflictQubits, startingColorConflictQubits) = (Qubit[nEdges], Qubit[nStartingColorConstraints])) {
         within {
-            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, 
-                edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
+            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
         } apply {
             // If there are no conflicts (all qubits are in 0 state), the vertex coloring is valid.
             (ControlledOnInt(0, X))(edgeConflictQubits + startingColorConflictQubits, target);
@@ -178,8 +182,7 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
         // apply ColorEqualityOracle_Nbit oracle; 
         // if the colors are the same the result will be 1, indicating a conflict
         ApplyColorEqualityOracle(
-            colorsRegister[start * bitsPerColor .. (start + 1) * bitsPerColor - 1], 
-            colorsRegister[end * bitsPerColor .. (end + 1) * bitsPerColor - 1], conflictQubit);
+            colorsRegister[start * bitsPerColor .. (start + 1) * bitsPerColor - 1], colorsRegister[end * bitsPerColor .. (end + 1) * bitsPerColor - 1], conflictQubit);
     }
     for (((cell, value), conflictQubit) in 
         Zip(startingColorConstraints, startingColorConflictQubits)) {
@@ -190,31 +193,31 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
 
 }
 ```
-/// # Summary
-/// Oracle for verifying vertex coloring, including color constraints 
-/// from non qubit vertices. This is the same as ApplyVertexColoringOracle, 
-/// but hardcoded to 4 bits per color and restriction that colors are 
-/// limited to 0 to 8.
-///
-/// # Input
-/// ## numVertices
-/// The number of vertices in the graph.
-/// ## edges
-/// The array of (Vertex#,Vertex#) specifying the Vertices that can not 
-/// be the same color.
-/// ## startingColorConstraints
-/// The array of (Vertex#,Color) specifying the dissallowed colors for vertices.
-/// ## colorsRegister
-/// The color register.
-/// ## target
-/// The target of the operation.
-///
-/// # Output
-/// A unitary operation that applies `oracle` on the target register if the control 
-/// register state corresponds to the bit mask `bits`.
-///
-/// # Example
-/// Consider the following 9x9 Sudoku puzzle:
+# Summary
+Oracle for verifying vertex coloring, including color constraints 
+from non qubit vertices. This is the same as ApplyVertexColoringOracle, 
+but hardcoded to 4 bits per color and restriction that colors are 
+limited to 0 to 8.
+
+# Input
+## numVertices
+The number of vertices in the graph.
+## edges
+The array of (Vertex#,Vertex#) specifying the Vertices that can not 
+be the same color.
+## startingColorConstraints
+The array of (Vertex#,Color) specifying the dissallowed colors for vertices.
+## colorsRegister
+The color register.
+## target
+The target of the operation.
+
+# Output
+A unitary operation that applies `oracle` on the target register if the control 
+register state corresponds to the bit mask `bits`.
+
+# Example
+Consider the following 9x9 Sudoku puzzle:
 ```
    -------------------------------------
    |   | 6 | 2 | 7 | 8 | 3 | 4 | 0 | 1 |
@@ -236,10 +239,10 @@ operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], edges : (I
    | 2 | 4 | 0 | 8 | 3 | 6 | 5 | 1 | 7 |
    -------------------------------------
 ```
-///  The challenge is to fill the empty squares with numbers 0 to 8
-///  that are unique in row, column and the top left 3x3 square
-///  This is a graph coloring problem where the colors are 0 to 8
-///  and the empty cells are the vertices. The vertices can be defined as
+The challenge is to fill the empty squares with numbers 0 to 8
+that are unique in row, column and the top left 3x3 square
+This is a graph coloring problem where the colors are 0 to 8
+and the empty cells are the vertices. The vertices can be defined as
 ```  
     -----------------
     | 0 |   |   |   | ...
@@ -253,19 +256,19 @@ The graph is
 ```
     0---1 
 ```
-/// Additionally, we also require that 
-///    - vertex 0 can not have value 6,2,7,8,3,4,0,1 (row constraint)
-///                         or value 8,7,6,4,0,3,1,2 (col constraint)
-///    - vertex 1 can not value 8,1,6,2,4,3,7,5 (row constraint)
-///                    or value 6,3,8,1,2,5,7,4 (col constraint)
-/// This results in edges (vertices that can not be same color)
-/// edges = [(1, 0)]
-/// This is saying that vertex 1 can not have same color as vertex 0
-/// and startingColorConstraints = [(0, 8),(0, 7),(0, 6),(0, 4),(0, 0),(0, 3),
-///     (0, 1),(0, 2),(1, 6),(1, 3),(1, 8),(1, 1),(1, 2),(1, 5),(1, 7),(1, 4)]
-/// The colors found must be from 0 to 8, which requires 4 bits per color.
-/// A valid graph coloring solution is: [5,0]
-/// i.e. vextex 0 has color 5, vertex 1 has color 0.
+Additionally, we also require that 
+   - vertex 0 can not have value 6,2,7,8,3,4,0,1 (row constraint)
+                        or value 8,7,6,4,0,3,1,2 (col constraint)
+   - vertex 1 can not value 8,1,6,2,4,3,7,5 (row constraint)
+                   or value 6,3,8,1,2,5,7,4 (col constraint)
+This results in edges (vertices that can not be same color)
+edges = [(1, 0)]
+This is saying that vertex 1 can not have same color as vertex 0
+and startingColorConstraints = [(0, 8),(0, 7),(0, 6),(0, 4),(0, 0),(0, 3),
+ (0, 1),(0, 2),(1, 6),(1, 3),(1, 8),(1, 1),(1, 2),(1, 5),(1, 7),(1, 4)]
+The colors found must be from 0 to 8, which requires 4 bits per color.
+A valid graph coloring solution is: [5,0]
+i.e. vextex 0 has color 5, vertex 1 has color 0.
 ### 代码
 
 ```javascript
@@ -303,14 +306,14 @@ operation ApplyVertexColoringOracle4Bit9Color (numVertices : Int, edges : (Int, 
     }
 }
 ```
-/// # Summary
-/// OR oracle for an arbitrary number of qubits in query register.
-///
-/// # Inputs
-/// ## queryRegister
-/// Qubit register to query.
-/// ## target
-/// Target qubit for storing oracle result.
+# Summary
+OR oracle for an arbitrary number of qubits in query register.
+
+# Inputs
+## queryRegister
+Qubit register to query.
+## target
+Target qubit for storing oracle result.
 ### 代码
 
 ```javascript
@@ -322,25 +325,25 @@ operation ApplyOrOracle (queryRegister : Qubit[], target : Qubit) : Unit is Adj 
     X(target);
 }
 ```
-/// # Summary
-/// Using Grover's search to find vertex coloring.
-///
-/// # Input
-/// ## numVertices
-/// The number of Vertices in the graph.
-/// ## bitsPerColor
-/// The number of bits per color.
-/// ## maxIterations
-/// An estimate of the maximum iterations needed.
-/// ## oracle
-/// The Oracle used to find solution.
-/// 
-/// # Output
-/// Int Array giving the color of each vertex.
-///
-/// # Remarks
-/// See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
-/// for original implementation in SolveSATWithGrover Kata.
+# Summary
+Using Grover's search to find vertex coloring.
+
+# Input
+## numVertices
+The number of Vertices in the graph.
+## bitsPerColor
+The number of bits per color.
+## maxIterations
+An estimate of the maximum iterations needed.
+## oracle
+The Oracle used to find solution.
+
+# Output
+Int Array giving the color of each vertex.
+
+# Remarks
+See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
+for original implementation in SolveSATWithGrover Kata.
 ### 代码
 
 ```javascript
@@ -380,16 +383,16 @@ operation FindColorsWithGrover (numVertices : Int, bitsPerColor : Int, maxIterat
     return coloring;
 }
 ```
-/// # Summary
-/// Grover algorithm loop
-///
-/// # Input
-/// ## oracle
-/// The oracle which will mark the valid solutions.
-///
-/// # Remarks
-/// See https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover
-/// for the original implementation from the SolveSATWithGrover kata.
+# Summary
+Grover algorithm loop
+
+# Input
+## oracle
+The oracle which will mark the valid solutions.
+
+# Remarks
+See [https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover]
+for the original implementation from the SolveSATWithGrover kata.
 ### 代码
 
 ```javascript
@@ -410,19 +413,19 @@ operation ApplyPhaseOracle (oracle : ((Qubit[], Qubit) => Unit is Adj), register
     }
 }
 ```
-/// # Summary
-/// Grover's Algorithm loop.
-///
-/// # Input
-/// ## register
-/// The register of qubits.
-/// ## oracle
-/// The oracle defining the solution we want.
-/// ## iterations
-/// The number of iterations to try.
-///
-/// # Output
-/// Unitary implementing Grover's search algorithm.
+# Summary
+Grover's Algorithm loop.
+
+# Input
+## register
+The register of qubits.
+## oracle
+The oracle defining the solution we want.
+## iterations
+The number of iterations to try.
+
+# Output
+Unitary implementing Grover's search algorithm.
 ### 代码
 
 ```javascript
@@ -442,26 +445,22 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
     }
 }
 ```
-/// # Summary
-/// Solve a Sudoku puzzle using Grover's algorithm.
-///
-/// # Description
-/// Sudoku is a graph coloring problem where graph edges must connect nodes 
-/// of different colors.
-/// In our case, graph nodes are puzzle squares and colors are the Sudoku numbers. 
-/// Graph edges are the constraints preventing squares from having the same values. 
-/// To reduce the number of qubits needed, we only use qubits for empty squares.
-/// We define the puzzle using 2 data structures:
-///
-///   - A list of edges connecting empty squares
-///   - A list of constraints on empty squares to the initial numbers 
-///     in the puzzle (starting numbers)
-/// The code works for both 9x9 Sudoku puzzles, and 4x4 Sudoku puzzles. 
-/// This description will use a 4x4 puzzle to make it easier to understand.
-/// The 4x4 puzzle is solved with number 0 to 3 instead of 1 to 4. 
-/// This is because we can encode 0-3 with 2 qubits.
-/// However, the same rules apply:
-///    - The numbers 0 to 3 may only appear once per row, column and 2x2 sub squares.
+# Summary
+Solve a Sudoku puzzle using Grover's algorithm.
+
+# Description
+Sudoku is a graph coloring problem where graph edges must connect nodes of different colors. In our case, graph nodes are puzzle squares and colors are the Sudoku numbers. Graph edges are the constraints preventing squares from having the same values. To reduce the number of qubits needed, we only use qubits for empty squares.
+We define the puzzle using 2 data structures:
+
+  - A list of edges connecting empty squares
+  - A list of constraints on empty squares to the initial numbers 
+    in the puzzle (starting numbers)
+The code works for both 9x9 Sudoku puzzles, and 4x4 Sudoku puzzles. 
+This description will use a 4x4 puzzle to make it easier to understand.
+The 4x4 puzzle is solved with number 0 to 3 instead of 1 to 4. 
+This is because we can encode 0-3 with 2 qubits.
+However, the same rules apply:
+   - The numbers 0 to 3 may only appear once per row, column and 2x2 sub squares.
 
 ```
     As an example              has solution
@@ -476,52 +475,59 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
     -----------------          -----------------
    
 ```
-/// In the above example, the edges/constraints for the top row are:
-///   _________
-///  | ______   \                   _____   
-///  || __   \   \                  | __  \                        __
-/// _|||__\___\_ _\__         ______||__\___\__          _________|___\__ 
-/// |   | 1 |   | 3 |         |   | 1 |   | 3 |         |   | 1 |   | 3 | 
-/// -----------------         -----------------         -----------------
-///
-/// For the row above, the empty squares have indexes
-/// _________________
-/// | 0 |   | 1 |   |
-/// -----------------
-/// For this row the list of emptySquareEdges has only 1 entry:
-/// emptySquareEdges = (0,1)         
-/// i.e. empty square 0 can't have the same number as empty square 1.
-/// The constraints on these empty squares to the starting numbers are:
-/// startingNumberConstraints = (0,1)  (0,3)  (1,1)  (1,3)   
-/// This is a list of (empty square #, number it can't be).  
-/// i.e. empty square 0 can't have value 1 or 3, 
-/// and empty square #1 can't have values 1 or 3.
-///
-/// # Input
-/// ## numVertices
-/// number of blank squares.
-/// ## size
-/// The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
-/// ## emptySquareEdges
-/// The traditional edges passed to the graph coloring algorithm which, 
-/// in our case, are empty puzzle squares.
-/// These edges define any "same row", "same column", "same sub-grid" 
-/// relationships between empty cells.
-/// Look at the README.md sample output to see examples of what this is 
-/// for different sample puzzles.
-/// ## startingNumberConstraints
-/// The constraints on the empty squares due to numbers already in the 
-/// puzzle when we start.
-/// Look at the README.md sample output to see examples of what this is 
-/// for different sample puzzles.
-///
-/// # Output
-/// A tuple with Result and the array of numbers for each empty square.
-/// Look at the README.md sample output to see examples of what this is 
-/// for different sample puzzles.
-///
-/// # Remarks
-/// The inputs and outputs for the following 4x4 puzzle are:
+
+In the above example, the edges/constraints for the top row are:
+
+```
+   _________
+  | ______   \                   _____   
+  || __   \   \                  | __  \                        __
+ _|||__\___\_ _\__         ______||__\___\__          _________|___\__ 
+ |   | 1 |   | 3 |         |   | 1 |   | 3 |         |   | 1 |   | 3 | 
+ -----------------         -----------------         -----------------
+
+For the row above, the empty squares have indexes
+_________________
+| 0 |   | 1 |   |
+-----------------
+```
+
+For this row the list of emptySquareEdges has only 1 entry:
+
+emptySquareEdges = (0,1) i.e. empty square 0 can't have the same number as empty square 1.
+
+The constraints on these empty squares to the starting numbers are:
+
+startingNumberConstraints = (0,1)  (0,3)  (1,1)  (1,3)
+
+This is a list of (empty square #, number it can't be).
+i.e. empty square 0 can't have value 1 or 3, and empty square #1 can't have values 1 or 3.
+
+# Input
+## numVertices
+number of blank squares.
+## size
+The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.
+## emptySquareEdges
+The traditional edges passed to the graph coloring algorithm which, 
+in our case, are empty puzzle squares.
+These edges define any "same row", "same column", "same sub-grid" 
+relationships between empty cells.
+Look at the README.md sample output to see examples of what this is 
+for different sample puzzles.
+## startingNumberConstraints
+The constraints on the empty squares due to numbers already in the 
+puzzle when we start.
+Look at the README.md sample output to see examples of what this is 
+for different sample puzzles.
+
+# Output
+A tuple with Result and the array of numbers for each empty square.
+Look at the README.md sample output to see examples of what this is 
+for different sample puzzles.
+
+# Remarks
+The inputs and outputs for the following 4x4 puzzle are:
 ```
     -----------------
     |   | 1 | 2 | 3 |         <--- empty square #0
@@ -533,13 +539,18 @@ operation ApplyGroversAlgorithmLoop (register : Qubit[],
     | 3 |   | 1 | 2 |         <--- empty square #2
     -----------------
 ```
-///    emptySquareEdges = [(1, 0),(2, 1)]    
-///         empty square #0 can not have the same color/number as empty call #1.
-///         empty square #1 and #2 can not have the same color/number (same column).
-///    startingNumberConstraints = [(0, 2),(0, 1),(0, 3),(1, 1),(1, 2),(1, 0),(2, 1),(2, 2),(2, 3)]
-///         empty square #0 can not have values 2,1,3 because same row/column/2x2grid.
-///         empty square #1 can not have values 1,2,0 because same row/column/2x2grid.
-///    Results = [0,3,0] i.e. Empty Square #0 = 0, Empty Square #1 = 3, Empty Square #2 = 0.
+
+emptySquareEdges = [(1, 0),(2, 1)] empty square #0 can not have the same color/number as empty call #1.
+
+empty square #1 and #2 can not have the same color/number (same column).
+
+startingNumberConstraints = [(0, 2),(0, 1),(0, 3),(1, 1),(1, 2),(1, 0),(2, 1),(2, 2),(2, 3)]
+
+empty square #0 can not have values 2,1,3 because same row/column/2x2grid.
+
+empty square #1 can not have values 1,2,0 because same row/column/2x2grid.
+
+Results = [0,3,0] i.e. Empty Square #0 = 0, Empty Square #1 = 3, Empty Square #2 = 0.
 
 ### 代码
 
