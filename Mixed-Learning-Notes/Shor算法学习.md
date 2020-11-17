@@ -2,7 +2,7 @@
 
 代码（作者：Microsoft）：[https://github.com/microsoft/Quantum/tree/main/samples/algorithms/integer-factorization]
 
-翻译与整理：B20200342吕征宇 @北京科技大学 2020/11/15
+翻译与整理：B20200342吕征宇 @北京科技大学 2020/11/16
 
 # 背景
 来源于[https://baike.baidu.com/item/RSA%E7%AE%97%E6%B3%95/263310]
