@@ -45,11 +45,11 @@
 <ul>
 <li>
 <p>bitsPerColor</p>
-<p>Number of bits per color.</p>
+<p>每种颜色的位数。</p>
 </li>
 <li>
 <p>register</p>
-<p>The register of qubits to be measured.</p>
+<p>要测量的量子位寄存器。</p>
 </li>
 </ul>
 <h3 id="代码-1">代码</h3>
@@ -57,7 +57,7 @@
     <span class="hljs-keyword">let</span> numVertices = Length(register) / bitsPerColor;
     <span class="hljs-keyword">let</span> colorPartitions = Partitioned(ConstantArray(numVertices - <span class="hljs-number">1</span>, bitsPerColor), register);
     <span class="hljs-keyword">return</span> ForEach(MeasureColor, colorPartitions);
-} 
+}
 </div></code></pre>
 <h2 id="函数-applycolorequalityoracle">函数 ApplyColorEqualityOracle</h2>
 <p>N位颜色等价oracle（无需额外的量子位）</p>
@@ -78,33 +78,79 @@
 <pre><code class="language-javascript"><div>operation ApplyColorEqualityOracle (color0 : Qubit[], <span class="hljs-attr">color1</span> : Qubit[], <span class="hljs-attr">target</span> : Qubit) : Unit is Adj+Ctl {
     within {
         <span class="hljs-keyword">for</span> ((q0, q1) <span class="hljs-keyword">in</span> Zip(color0, color1)) {
-            <span class="hljs-comment">// compute XOR of q0 and q1 in place (storing it in q1).</span>
+            <span class="hljs-comment">//q1&lt;=q0 XOR q1</span>
             CNOT(q0, q1);
         }
     } apply {
-        <span class="hljs-comment">// if all XORs are 0, the bit strings are equal.</span>
+        <span class="hljs-comment">//如果观测出来全为0，则表示两个寄存器中的值相等</span>
         (ControlledOnInt(<span class="hljs-number">0</span>, X))(color1, target);
     }
 }
 </div></code></pre>
 <h2 id="函数-applyvertexcoloringoracle">函数 ApplyVertexColoringOracle</h2>
-<p>Oracle for verifying vertex coloring, including color constraints from
-non qubit vertices.</p>
-<h1 id="input">Input</h1>
-<h2 id="numvertices">numVertices</h2>
-<p>The number of vertices in the graph.</p>
-<h2 id="bitspercolor">bitsPerColor</h2>
-<p>The bits per color e.g. 2 bits per color allows for 4 colors.</p>
-<h2 id="edges">edges</h2>
-<p>The array of (Vertex#,Vertex#) specifying the Vertices that can not be
-the same color.</p>
-<h2 id="startingcolorconstraints">startingColorConstraints</h2>
-<p>The array of (Vertex#,Color) specifying the dissallowed colors for vertices.</p>
-<h1 id="output">Output</h1>
-<p>A unitary operation that applies <code>oracle</code> on the target register if the control
-register state corresponds to the bit mask <code>bits</code>.</p>
-<h1 id="example">Example</h1>
-<p>Consider the following 4x4 Sudoku puzzle</p>
+<p>验证顶点着色的<code>Oracle</code>，包括非量子位顶点的颜色约束。</p>
+<h3 id="输入-3">输入</h3>
+<ul>
+<li>
+<p>numVertices</p>
+<p>图中顶点的数目。</p>
+</li>
+<li>
+<p>bitsPerColor</p>
+<p>每种颜色的位数，例如每种颜色2位，允许4种颜色。</p>
+</li>
+<li>
+<p>edges</p>
+<p>（Vertex#，Vertex#）数组，指定不同颜色的顶点。</p>
+</li>
+<li>
+<p>startingColorConstraints</p>
+<p>指定顶点不允许的颜色的数组（Vertex#，Color）。</p>
+</li>
+</ul>
+<h3 id="输出-1">输出</h3>
+<p>如果控制寄存器状态与位掩码<code>bits</code>相对应，则对目标寄存器应用<code>oracle</code>操作。</p>
+<h3 id="代码-3">代码</h3>
+<pre><code class="language-javascript"><div>operation ApplyVertexColoringOracle (numVertices : Int, <span class="hljs-attr">bitsPerColor</span> : Int, <span class="hljs-attr">edges</span> : (Int, Int)[],  
+    <span class="hljs-attr">startingColorConstraints</span> : (Int, Int)[], 
+    <span class="hljs-attr">colorsRegister</span> : Qubit[], 
+    <span class="hljs-attr">target</span> : Qubit) : Unit is Adj+Ctl {
+    <span class="hljs-keyword">let</span> nEdges = Length(edges);
+    <span class="hljs-keyword">let</span> nStartingColorConstraints = Length(startingColorConstraints);
+    <span class="hljs-comment">// 我们正在寻找一种解决方案：</span>
+    <span class="hljs-comment">// (a) 没有两端颜色相同的边 </span>
+    <span class="hljs-comment">// (b) 没有颜色违反起始颜色约束的顶点</span>
+    using ((edgeConflictQubits, startingColorConflictQubits) = (Qubit[nEdges], Qubit[nStartingColorConstraints])) {
+        within {
+            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
+        } apply {
+            <span class="hljs-comment">// 如果没有冲突（所有量子位都处于0状态），则顶点着色是有效的。</span>
+            (ControlledOnInt(<span class="hljs-number">0</span>, X))(edgeConflictQubits + startingColorConflictQubits, target);
+        }
+    }
+}
+<span class="hljs-comment">//按边和起始颜色约束进行约束</span>
+operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], <span class="hljs-attr">edges</span> : (Int, Int)[], <span class="hljs-attr">startingColorConstraints</span> : (Int, Int)[],
+    <span class="hljs-attr">edgeConflictQubits</span> : Qubit[], <span class="hljs-attr">startingColorConflictQubits</span> : Qubit[], <span class="hljs-attr">bitsPerColor</span>: Int): Unit is Adj+Ctl {
+    <span class="hljs-keyword">for</span> (((start, end), conflictQubit) <span class="hljs-keyword">in</span> Zip(edges, edgeConflictQubits)) {
+        <span class="hljs-comment">// 检查边的端点是否具有不同的颜色：</span>
+        <span class="hljs-comment">// 应用ColorEqualityOracle_Nbit `oracle`；</span>
+        <span class="hljs-comment">// 如果颜色相同，结果为1，表示冲突</span>
+        ApplyColorEqualityOracle(
+            colorsRegister[start * bitsPerColor .. (start + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], colorsRegister[end * bitsPerColor .. (end + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], conflictQubit);
+    }
+    <span class="hljs-keyword">for</span> (((cell, value), conflictQubit) <span class="hljs-keyword">in</span>
+        Zip(startingColorConstraints, startingColorConflictQubits)) {
+        <span class="hljs-comment">// 检查单元格是否与起始颜色冲突。</span>
+        (ControlledOnInt(value, X))(colorsRegister[
+            cell * bitsPerColor .. (cell + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], conflictQubit);
+    }
+
+}
+
+</div></code></pre>
+<h3 id="举个例子">举个例子</h3>
+<p>这是个 4x4 的数独谜题：</p>
 <pre><code><code><div>    -----------------
     |   |   | 2 | 3 |
     -----------------
@@ -115,10 +161,7 @@ register state corresponds to the bit mask <code>bits</code>.</p>
     | 3 | 0 | 1 | 2 |
     -----------------
 </div></code></code></pre>
-<p>The challenge is to fill the empty squares with numbers 0 to 3
-that are unique in row, column and the top left 2x2 square.
-This is a graph coloring problem where the colors are 0 to 3
-and the empty cells are the vertices. The vertices can be defined as:</p>
+<p>挑战是用0到3的数字填充空正方形，这些数字在行、列和左上角2x2平方中是唯一的。这是一个图着色问题，其中颜色为0到3，空单元格是顶点。顶点可以定义为：</p>
 <pre><code><code><div>    -----------------
     | 0 | 1 |   |   |
     -----------------
@@ -129,7 +172,7 @@ and the empty cells are the vertices. The vertices can be defined as:</p>
     |   |   |   |   |
     -----------------
 
-The graph is
+图可以表示为这个
 
  0---1
  | X |
@@ -141,77 +184,41 @@ Additionally, we require that:</p>
 <li>vertices 0 and 1 do not get colors 2 and 3.</li>
 <li>vertices 2 and 3 do not get colors 3 and 0.</li>
 <li>vertices 0 and 2 do not get colors 1 and 3.</li>
-<li>vertices 1 and 3 do not get colors 2 and 0.
-This results in edges (vertices that can not be same color):
-<code>edges = [(1, 0),(2, 0),(3, 0),(3, 1),(3, 2)]</code>
-This is saying that vertex 1 can not have same color as vertex 0 etc.</li>
+<li>vertices 1 and 3 do not get colors 2 and 0.</li>
 </ul>
-<p>and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),
-(1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]</p>
-<p>This is saying that vertex 0 is not allowed to have values 1,3,2
-and vertex 1 is not allowed to have values 2,0,3
-and vertex 2 is not allowed to have values 1,3,0
-and vertex 3 is not allowed to have values 2,0,1</p>
+<p>This results in edges (vertices that can not be same color):
+<code>edges = [(1, 0),(2, 0),(3, 0),(3, 1),(3, 2)]</code></p>
+<p>This is saying that vertex 1 can not have same color as vertex 0 etc.</p>
+<p>and startingColorConstraints = [(0, 1),(0, 3),(0, 2),(1, 2),(1, 0),(1, 3),(2, 1),(2, 3),(2, 0),(3, 2),(3, 0),(3, 1)]</p>
+<p>This is saying that:</p>
+<ul>
+<li>vertex 0 is not allowed to have values 1,3,2</li>
+<li>vertex 1 is not allowed to have values 2,0,3</li>
+<li>vertex 2 is not allowed to have values 1,3,0</li>
+<li>vertex 3 is not allowed to have values 2,0,1</li>
+</ul>
 <p>A valid graph coloring solution is: [0,1,2,3] i.e. vextex 0 has color 0, vertex 1 has color 1 etc.</p>
-<h3 id="代码-3">代码</h3>
-<pre><code class="language-javascript"><div>operation ApplyVertexColoringOracle (numVertices : Int, <span class="hljs-attr">bitsPerColor</span> : Int, <span class="hljs-attr">edges</span> : (Int, Int)[],  
-    <span class="hljs-attr">startingColorConstraints</span> : (Int, Int)[], 
-    <span class="hljs-attr">colorsRegister</span> : Qubit[], 
-    <span class="hljs-attr">target</span> : Qubit) : Unit is Adj+Ctl {
-    <span class="hljs-keyword">let</span> nEdges = Length(edges);
-    <span class="hljs-keyword">let</span> nStartingColorConstraints = Length(startingColorConstraints);
-    <span class="hljs-comment">// we are looking for a solution that:</span>
-    <span class="hljs-comment">// (a) has no edge with same color at both ends and </span>
-    <span class="hljs-comment">// (b) has no Vertex with a color that violates the starting color constraints.</span>
-    using ((edgeConflictQubits, startingColorConflictQubits) = (Qubit[nEdges], Qubit[nStartingColorConstraints])) {
-        within {
-            ConstrainByEdgeAndStartingColors(colorsRegister, edges, startingColorConstraints, edgeConflictQubits, startingColorConflictQubits, bitsPerColor);
-        } apply {
-            <span class="hljs-comment">// If there are no conflicts (all qubits are in 0 state), the vertex coloring is valid.</span>
-            (ControlledOnInt(<span class="hljs-number">0</span>, X))(edgeConflictQubits + startingColorConflictQubits, target);
-        }
-    }
-}
-
-operation ConstrainByEdgeAndStartingColors (colorsRegister : Qubit[], <span class="hljs-attr">edges</span> : (Int, Int)[], <span class="hljs-attr">startingColorConstraints</span> : (Int, Int)[],
-    <span class="hljs-attr">edgeConflictQubits</span> : Qubit[], <span class="hljs-attr">startingColorConflictQubits</span> : Qubit[], <span class="hljs-attr">bitsPerColor</span>: Int): Unit is Adj+Ctl {
-    <span class="hljs-keyword">for</span> (((start, end), conflictQubit) <span class="hljs-keyword">in</span> Zip(edges, edgeConflictQubits)) {
-        <span class="hljs-comment">// Check that endpoints of the edge have different colors:</span>
-        <span class="hljs-comment">// apply ColorEqualityOracle_Nbit oracle; </span>
-        <span class="hljs-comment">// if the colors are the same the result will be 1, indicating a conflict</span>
-        ApplyColorEqualityOracle(
-            colorsRegister[start * bitsPerColor .. (start + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], colorsRegister[end * bitsPerColor .. (end + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], conflictQubit);
-    }
-    <span class="hljs-keyword">for</span> (((cell, value), conflictQubit) <span class="hljs-keyword">in</span> 
-        Zip(startingColorConstraints, startingColorConflictQubits)) {
-        <span class="hljs-comment">// Check that cell does not clash with starting colors.</span>
-        (ControlledOnInt(value, X))(colorsRegister[
-            cell * bitsPerColor .. (cell + <span class="hljs-number">1</span>) * bitsPerColor - <span class="hljs-number">1</span>], conflictQubit);
-    }
-
-}
-</div></code></pre>
 <h1 id="summary">Summary</h1>
 <p>Oracle for verifying vertex coloring, including color constraints
 from non qubit vertices. This is the same as ApplyVertexColoringOracle,
 but hardcoded to 4 bits per color and restriction that colors are
 limited to 0 to 8.</p>
-<h1 id="input-1">Input</h1>
-<h2 id="numvertices-1">numVertices</h2>
+<h1 id="input">Input</h1>
+<h2 id="numvertices">numVertices</h2>
 <p>The number of vertices in the graph.</p>
-<h2 id="edges-1">edges</h2>
+<h2 id="edges">edges</h2>
 <p>The array of (Vertex#,Vertex#) specifying the Vertices that can not
 be the same color.</p>
-<h2 id="startingcolorconstraints-1">startingColorConstraints</h2>
+<h2 id="startingcolorconstraints">startingColorConstraints</h2>
 <p>The array of (Vertex#,Color) specifying the dissallowed colors for vertices.</p>
 <h2 id="colorsregister">colorsRegister</h2>
 <p>The color register.</p>
 <h2 id="target">target</h2>
 <p>The target of the operation.</p>
-<h1 id="output-1">Output</h1>
+<h1 id="output">Output</h1>
 <p>A unitary operation that applies <code>oracle</code> on the target register if the control
 register state corresponds to the bit mask <code>bits</code>.</p>
-<h1 id="example-1">Example</h1>
+<h1 id="example">Example</h1>
 <p>Consider the following 9x9 Sudoku puzzle:</p>
 <pre><code><code><div>   -------------------------------------
    |   | 6 | 2 | 7 | 8 | 3 | 4 | 0 | 1 |
@@ -298,61 +305,75 @@ i.e. vextex 0 has color 5, vertex 1 has color 0.</li>
     }
 }
 </div></code></pre>
-<h1 id="summary-1">Summary</h1>
-<p>OR oracle for an arbitrary number of qubits in query register.</p>
-<h1 id="inputs">Inputs</h1>
-<h2 id="queryregister">queryRegister</h2>
-<p>Qubit register to query.</p>
-<h2 id="target-1">target</h2>
-<p>Target qubit for storing oracle result.</p>
+<h2 id="函数-applyororacle">函数 ApplyOrOracle</h2>
+<p>用于查询寄存器中任意数量的量子位的OR oracle。</p>
+<h3 id="输入-4">输入</h3>
+<ul>
+<li>
+<p>queryRegister</p>
+<p>要查询的Qubit寄存器。</p>
+</li>
+<li>
+<p>target</p>
+<p>用于存储oracle结果的目标量子位。</p>
+</li>
+</ul>
 <h3 id="代码-5">代码</h3>
-<pre><code class="language-javascript"><div>operation ApplyOrOracle (queryRegister : Qubit[], <span class="hljs-attr">target</span> : Qubit) : Unit is Adj {        
+<pre><code class="language-javascript"><div>operation ApplyOrOracle (queryRegister : Qubit[], <span class="hljs-attr">target</span> : Qubit) : Unit is Adj {
     <span class="hljs-comment">// x₀ ∨ x₁ = ¬ (¬x₀ ∧ ¬x₁)</span>
-    <span class="hljs-comment">// First, flip target if both qubits are in |0⟩ state.</span>
+    <span class="hljs-comment">// 首先，如果两个量子位都处于| 0⟩状态，则翻转目标。</span>
     (ControlledOnInt(<span class="hljs-number">0</span>, X))(queryRegister, target);
-    <span class="hljs-comment">// Then flip target again to get negation.</span>
+    <span class="hljs-comment">// 然后再次翻转目标取反。</span>
     X(target);
 }
 </div></code></pre>
-<h1 id="summary-2">Summary</h1>
-<p>Using Grover's search to find vertex coloring.</p>
-<h1 id="input-2">Input</h1>
-<h2 id="numvertices-2">numVertices</h2>
-<p>The number of Vertices in the graph.</p>
-<h2 id="bitspercolor-1">bitsPerColor</h2>
-<p>The number of bits per color.</p>
-<h2 id="maxiterations">maxIterations</h2>
-<p>An estimate of the maximum iterations needed.</p>
-<h2 id="oracle">oracle</h2>
-<p>The Oracle used to find solution.</p>
-<h1 id="output-2">Output</h1>
-<p>Int Array giving the color of each vertex.</p>
-<h1 id="remarks">Remarks</h1>
-<p>See [<a href="https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover">https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover</a>]
-for original implementation in SolveSATWithGrover Kata.</p>
+<h2 id="函数-findcolorswithgrover">函数 FindColorsWithGrover</h2>
+<p>用Grover的搜索寻找顶点着色。</p>
+<h3 id="输入-5">输入</h3>
+<ul>
+<li>
+<p>numVertices</p>
+<p>图中顶点的数目。</p>
+</li>
+<li>
+<p>bitsPerColor</p>
+<p>每种颜色的位数。</p>
+</li>
+<li>
+<p>maxIterations</p>
+<p>估计所需的最大迭代次数。</p>
+</li>
+<li>
+<p>oracle</p>
+<p>用于寻找解的<code>oracle</code></p>
+</li>
+</ul>
+<h3 id="输出-2">输出</h3>
+<p>提供每个顶点颜色的Int数组。</p>
+<h3 id="提示">提示</h3>
+<p>SolveSATWithGrover Kata中的原始实现请查看[<a href="https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover">https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover</a>]。</p>
 <h3 id="代码-6">代码</h3>
-<pre><code class="language-javascript"><div>operation FindColorsWithGrover (numVertices : Int, <span class="hljs-attr">bitsPerColor</span> : Int, <span class="hljs-attr">maxIterations</span> : Int, 
-    <span class="hljs-attr">oracle</span> : (<span class="hljs-function">(<span class="hljs-params">Qubit[], Qubit</span>) =&gt;</span> Unit is Adj)) : Int[] {
-    <span class="hljs-comment">// This task is similar to task 2.2 from SolveSATWithGrover kata, </span>
-    <span class="hljs-comment">// but the percentage of correct solutions is potentially higher.</span>
+<pre><code class="language-javascript"><div>operation FindColorsWithGrover (numVertices : Int, <span class="hljs-attr">bitsPerColor</span> : Int, <span class="hljs-attr">maxIterations</span> : Int,<span class="hljs-attr">oracle</span> : (<span class="hljs-function">(<span class="hljs-params">Qubit[], Qubit</span>) =&gt;</span> Unit is Adj)) : Int[] {
+    <span class="hljs-comment">// 此任务类似于SolveSATWithGrover kata的2.2版本，</span>
+    <span class="hljs-comment">// 但正确解决方案的百分比可能更高。</span>
     mutable coloring = <span class="hljs-keyword">new</span> Int[numVertices];
 
-    <span class="hljs-comment">// Note that coloring register has the number of qubits that is </span>
-    <span class="hljs-comment">// twice the number of vertices (bitsPerColor qubits per vertex).</span>
+    <span class="hljs-comment">// 注意，着色寄存器的量子比特数是顶点数的两倍</span>
+    <span class="hljs-comment">//（每个顶点的比特数或量子比特数）。</span>
     using ((register, output) = (Qubit[bitsPerColor * numVertices], Qubit())) {
         mutable correct = <span class="hljs-literal">false</span>;
         mutable iter = <span class="hljs-number">1</span>;
-        <span class="hljs-comment">// Try for one iteration, if it fails, try again for one more iteration and repeat until maxIterations is reached.</span>
+        <span class="hljs-comment">// 尝试一次迭代，如果失败，则再次尝试一次迭代并重复，</span>
+        <span class="hljs-comment">// 直到达到最大迭代次数。</span>
         repeat {
             Message($<span class="hljs-string">&quot;Trying search with {iter} iterations...&quot;</span>);
             ApplyGroversAlgorithmLoop(register, oracle, iter);
             <span class="hljs-keyword">let</span> res = MultiM(register);
-            <span class="hljs-comment">// to check whether the result is correct, apply the oracle to the </span>
-            <span class="hljs-comment">// register plus auxiliary after measurement.</span>
+            <span class="hljs-comment">// 若要检查结果是否正确，请在测量后对寄存器加辅助项应用oracle。</span>
             oracle(register, output);
             <span class="hljs-keyword">if</span> (MResetZ(output) == One) {
                 set correct = <span class="hljs-literal">true</span>;
-                <span class="hljs-comment">// Read off coloring.</span>
+                <span class="hljs-comment">// 读出颜色。</span>
                 set coloring = MeasureColoring(bitsPerColor, register);
             }
             ResetAll(register);
@@ -367,49 +388,58 @@ for original implementation in SolveSATWithGrover Kata.</p>
     <span class="hljs-keyword">return</span> coloring;
 }
 </div></code></pre>
-<h1 id="summary-3">Summary</h1>
-<p>Grover algorithm loop</p>
-<h1 id="input-3">Input</h1>
-<h2 id="oracle-1">oracle</h2>
-<p>The oracle which will mark the valid solutions.</p>
-<h1 id="remarks-1">Remarks</h1>
-<p>See [<a href="https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover">https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover</a>]
-for the original implementation from the SolveSATWithGrover kata.</p>
+<h2 id="函数-applyphaseoracle">函数 ApplyPhaseOracle</h2>
+<p>Grover算法迭代循环</p>
+<h3 id="输入-6">输入</h3>
+<ul>
+<li>
+<p>oracle</p>
+<p><code>Oracle</code>将标记有效的解决方案。</p>
+</li>
+</ul>
+<h3 id="提示-1">提示</h3>
+<p>SolveSATWithGrover Kata中的原始实现请查看[<a href="https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover">https://github.com/microsoft/QuantumKatas/tree/main/SolveSATWithGrover</a>]。</p>
 <h3 id="代码-7">代码</h3>
 <pre><code class="language-javascript"><div>operation ApplyPhaseOracle (oracle : (<span class="hljs-function">(<span class="hljs-params">Qubit[], Qubit</span>) =&gt;</span> Unit is Adj), <span class="hljs-attr">register</span> : Qubit[]) : Unit is Adj {
 
     using (target = Qubit()) {
         within {
-            <span class="hljs-comment">// Put the target into the |-⟩ state.</span>
+            <span class="hljs-comment">// 将目标置于|-⟩状态。</span>
             X(target);
             H(target);
         } apply {
-            <span class="hljs-comment">// Apply the marking oracle; since the target is in the |-⟩ state,</span>
-            <span class="hljs-comment">// flipping the target if the register satisfies the oracle condition </span>
-            <span class="hljs-comment">// will apply a -1 factor to the state.</span>
+            <span class="hljs-comment">// 应用标记oracle；由于目标处于|-⟩状态，</span>
+            <span class="hljs-comment">// 如果寄存器满足oracle条件，则翻转目标将对状态应用-1因子。</span>
             oracle(register, target);
         }
-        <span class="hljs-comment">// We put the target back into |0⟩ so we can return it.</span>
+        <span class="hljs-comment">//我们把目标放回|0⟩这样我们就可以把它放回去了。</span>
     }
 }
 </div></code></pre>
-<h1 id="summary-4">Summary</h1>
-<p>Grover's Algorithm loop.</p>
-<h1 id="input-4">Input</h1>
-<h2 id="register">register</h2>
-<p>The register of qubits.</p>
-<h2 id="oracle-2">oracle</h2>
-<p>The oracle defining the solution we want.</p>
-<h2 id="iterations">iterations</h2>
-<p>The number of iterations to try.</p>
-<h1 id="output-3">Output</h1>
-<p>Unitary implementing Grover's search algorithm.</p>
+<h2 id="函数-applygroversalgorithmloop">函数 ApplyGroversAlgorithmLoop</h2>
+<p>使用Grover算法迭代循环.</p>
+<h3 id="输入-7">输入</h3>
+<ul>
+<li>
+<p>register</p>
+<p>量子比特的寄存器。</p>
+</li>
+<li>
+<p>oracle</p>
+<p><code>量子黑箱</code>定义了解决方案。</p>
+</li>
+<li>
+<p>iterations</p>
+<p>要尝试的迭代次数。</p>
+</li>
+</ul>
+<h3 id="输出-3">输出</h3>
+<p>单一实现Grover搜索算法。</p>
 <h3 id="代码-8">代码</h3>
 <pre><code class="language-javascript"><div>operation ApplyGroversAlgorithmLoop (register : Qubit[], 
     <span class="hljs-attr">oracle</span> : (<span class="hljs-function">(<span class="hljs-params">Qubit[], Qubit</span>) =&gt;</span> Unit is Adj), <span class="hljs-attr">iterations</span> : Int) : Unit {
     <span class="hljs-keyword">let</span> applyPhaseOracle = ApplyPhaseOracle(oracle, _);
     ApplyToEach(H, register);
-        
     <span class="hljs-keyword">for</span> (_ <span class="hljs-keyword">in</span> <span class="hljs-number">1</span> .. iterations) {
         applyPhaseOracle(register);
         within {
@@ -421,7 +451,64 @@ for the original implementation from the SolveSATWithGrover kata.</p>
     }
 }
 </div></code></pre>
-<h1 id="summary-5">Summary</h1>
+<h2 id="函数-niterations">函数 NIterations</h2>
+<p>估计求解所需的迭代次数。</p>
+<h3 id="输入-8">输入</h3>
+<ul>
+<li>
+<p>nQubits</p>
+<p>正在使用的量子位数。</p>
+</li>
+</ul>
+<h3 id="评述">评述</h3>
+<p>对于振幅放大问题，只有一个正确的解决方案，这是正确的，但需要在有多个解决方案时进行调整。</p>
+<h3 id="代码-9">代码</h3>
+<pre><code class="language-javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">NIterations</span>(<span class="hljs-params">nQubits : Int</span>) : <span class="hljs-title">Int</span> </span>{
+    <span class="hljs-keyword">let</span> nItems = <span class="hljs-number">1</span> &lt;&lt;&lt; nQubits; <span class="hljs-comment">// 2^numQubits</span>
+    <span class="hljs-comment">// 计算迭代次数</span>
+    <span class="hljs-keyword">let</span> angle = ArcSin(<span class="hljs-number">1.</span> / Sqrt(IntAsDouble(nItems)));
+    <span class="hljs-keyword">let</span> nIterations = Round(<span class="hljs-number">0.25</span> * PI() / angle - <span class="hljs-number">0.5</span>);
+    <span class="hljs-keyword">return</span> nIterations;
+}
+</div></code></pre>
+<h2 id="函数-issudokusolutionvalid">函数 IsSudokuSolutionValid</h2>
+<p>检验填在空白位置的数字是否符合数独规则——满足行列的约束。</p>
+<h3 id="输入-9">输入</h3>
+<ul>
+<li>
+<p>size</p>
+<p>数独大小。</p>
+</li>
+<li>
+<p>edges</p>
+<p>传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。</p>
+<p>这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。</p>
+</li>
+<li>
+<p>startingNumberConstraints</p>
+<p>当我们开始的时候，由于数字已经在拼图中，对空格子的限制。</p>
+</li>
+<li>
+<p>colors</p>
+<p>每个空格的整数数组，即数独的解。</p>
+</li>
+</ul>
+<h3 id="输出-4">输出</h3>
+<p>如果符合数独规则，那么返回<code>真</code>。</p>
+<h3 id="代码-10">代码</h3>
+<pre><code class="language-javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">IsSudokuSolutionValid</span> (<span class="hljs-params">size : Int, edges : (Int, Int)[],startingNumberConstraints : (Int, Int)[], colors : Int[]</span>) : <span class="hljs-title">Bool</span> 
+</span>{
+    <span class="hljs-keyword">if</span> (Any(GreaterThanOrEqualI(_, size), colors)) { <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; }
+    <span class="hljs-keyword">if</span> (Any(EqualI, edges)) { <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; }
+    <span class="hljs-keyword">for</span> ((index, startingNumber) <span class="hljs-keyword">in</span> startingNumberConstraints) {
+        <span class="hljs-keyword">if</span> (colors[index] == startingNumber) {
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+        }
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</div></code></pre>
+<h1 id="summary-1">Summary</h1>
 <p>Solve a Sudoku puzzle using Grover's algorithm.</p>
 <h1 id="description">Description</h1>
 <p>Sudoku is a graph coloring problem where graph edges must connect nodes of different colors. In our case, graph nodes are puzzle squares and colors are the Sudoku numbers. Graph edges are the constraints preventing squares from having the same values. To reduce the number of qubits needed, we only use qubits for empty squares.
@@ -468,29 +555,29 @@ _________________
 <p>startingNumberConstraints = (0,1)  (0,3)  (1,1)  (1,3)</p>
 <p>This is a list of (empty square #, number it can't be).
 i.e. empty square 0 can't have value 1 or 3, and empty square #1 can't have values 1 or 3.</p>
-<h1 id="input-5">Input</h1>
-<h2 id="numvertices-3">numVertices</h2>
-<p>number of blank squares.</p>
-<h2 id="size">size</h2>
-<p>The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.</p>
-<h2 id="emptysquareedges">emptySquareEdges</h2>
-<p>The traditional edges passed to the graph coloring algorithm which,
-in our case, are empty puzzle squares.
-These edges define any &quot;same row&quot;, &quot;same column&quot;, &quot;same sub-grid&quot;
-relationships between empty cells.
-Look at the <a href="http://README.html">README.md</a> sample output to see examples of what this is
-for different sample puzzles.</p>
-<h2 id="startingnumberconstraints">startingNumberConstraints</h2>
-<p>The constraints on the empty squares due to numbers already in the
-puzzle when we start.
-Look at the <a href="http://README.html">README.md</a> sample output to see examples of what this is
-for different sample puzzles.</p>
-<h1 id="output-4">Output</h1>
-<p>A tuple with Result and the array of numbers for each empty square.
-Look at the <a href="http://README.html">README.md</a> sample output to see examples of what this is
-for different sample puzzles.</p>
-<h1 id="remarks-2">Remarks</h1>
-<p>The inputs and outputs for the following 4x4 puzzle are:</p>
+<h3 id="输入-10">输入</h3>
+<ul>
+<li>
+<p>numVertices</p>
+<p>空白方块数。</p>
+</li>
+<li>
+<p>size</p>
+<p>数独的大小。4个用于4x4格，9个用于9x9格。</p>
+</li>
+<li>
+<p>emptySquareEdges</p>
+<p>传统的边传递给图着色算法，在我们的例子中，是空的拼图方块。这些边定义空单元格之间的任何“同一行”、“同一列”、“同一子网格”关系。</p>
+</li>
+<li>
+<p>startingNumberConstraints</p>
+<p>当我们开始的时候，由于数字已经在数独中，对空方块的限制。</p>
+</li>
+</ul>
+<h3 id="输出-5">输出</h3>
+<p>一个包含结果和每个空正方形的数字数组的元组。</p>
+<h3 id="提示-2">提示</h3>
+<p>以下4x4数独的输入和输出是：</p>
 <pre><code><code><div>    -----------------
     |   | 1 | 2 | 3 |         &lt;--- empty square #0
     -----------------
@@ -501,13 +588,11 @@ for different sample puzzles.</p>
     | 3 |   | 1 | 2 |         &lt;--- empty square #2
     -----------------
 </div></code></code></pre>
-<p>emptySquareEdges = [(1, 0),(2, 1)] empty square #0 can not have the same color/number as empty call #1.</p>
-<p>empty square #1 and #2 can not have the same color/number (same column).</p>
+<p>emptySquareEdges = [(1, 0),(2, 1)] 空格 #0 不能够和 #1 有相同的颜色或者数字，空格 #1 不能够和 #2 有相同的颜色或者数字。</p>
 <p>startingNumberConstraints = [(0, 2),(0, 1),(0, 3),(1, 1),(1, 2),(1, 0),(2, 1),(2, 2),(2, 3)]</p>
-<p>empty square #0 can not have values 2,1,3 because same row/column/2x2grid.</p>
-<p>empty square #1 can not have values 1,2,0 because same row/column/2x2grid.</p>
-<p>Results = [0,3,0] i.e. Empty Square #0 = 0, Empty Square #1 = 3, Empty Square #2 = 0.</p>
-<h3 id="代码-9">代码</h3>
+<p>空格 #0 不能够和 2,1,3 有相同的颜色或者数字或者在同一个2x2的方格中，空格 #1 不能够和 1,2,0 有相同的颜色或者数字或者在同一个2x2的方格中.</p>
+<p>Results = [0,3,0] ，即空格 #0 = 0, 空格 #1 = 3, 空格 #2 = 0.</p>
+<h3 id="代码-11">代码</h3>
 <pre><code class="language-javascript"><div>operation SolvePuzzle(numVertices : Int, <span class="hljs-attr">size</span> : Int, <span class="hljs-attr">emptySquareEdges</span> : (Int, Int)[], 
     <span class="hljs-attr">startingNumberConstraints</span>: (Int, Int)[]) : (Bool, Int[]) {
     <span class="hljs-comment">// for size = 4x4 grid</span>
@@ -542,63 +627,6 @@ for different sample puzzles.</p>
         Message($<span class="hljs-string">&quot;Got invalid Sudoku solution: {coloring}&quot;</span>);
         <span class="hljs-keyword">return</span> (<span class="hljs-literal">false</span>, coloring);
     }
-}
-</div></code></pre>
-<h2 id="函数-niterations">函数 NIterations</h2>
-<p>Estimate the number of interations required for solution.</p>
-<h3 id="输入-3">输入</h3>
-<ul>
-<li>
-<p>nQubits</p>
-<p>The number of qubits being used.</p>
-</li>
-</ul>
-<h3 id="评述">评述</h3>
-<p>This is correct for an amplitude amplification problem with a single correct solution, but would need to be adapted when there are multiple solutions</p>
-<h3 id="代码-10">代码</h3>
-<pre><code class="language-javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">NIterations</span>(<span class="hljs-params">nQubits : Int</span>) : <span class="hljs-title">Int</span> </span>{
-    <span class="hljs-keyword">let</span> nItems = <span class="hljs-number">1</span> &lt;&lt;&lt; nQubits; <span class="hljs-comment">// 2^numQubits</span>
-    <span class="hljs-comment">// compute number of iterations:</span>
-    <span class="hljs-keyword">let</span> angle = ArcSin(<span class="hljs-number">1.</span> / Sqrt(IntAsDouble(nItems)));
-    <span class="hljs-keyword">let</span> nIterations = Round(<span class="hljs-number">0.25</span> * PI() / angle - <span class="hljs-number">0.5</span>);
-    <span class="hljs-keyword">return</span> nIterations;
-}
-</div></code></pre>
-<h2 id="函数-issudokusolutionvalid">函数 IsSudokuSolutionValid</h2>
-<p>Check if the colors/numbers found for each empty square are in the correct range (e.g. &lt;9 for a 9x9 puzzle) and satisfy all edge/starting number constraints.</p>
-<h3 id="input-6">Input</h3>
-<ul>
-<li>
-<p>size</p>
-<p>The size of the puzzle. 4 for 4x4 grid, 9 for 9x9 grid.</p>
-</li>
-<li>
-<p>edges</p>
-<p>The traditional edges passed to the graph coloring algorithm which, in our case, are empty puzzle squares.</p>
-<p>These edges define any &quot;same row&quot;, &quot;same column&quot;, &quot;same sub-grid&quot; relationships between empty cells.</p>
-</li>
-<li>
-<p>startingNumberConstraints</p>
-<p>The constraints on the empty squares due to numbers already in the puzzle when we start.</p>
-</li>
-<li>
-<p>colors</p>
-<p>An Int array of numbers for each empty square i.e. the puzzle solution.</p>
-</li>
-</ul>
-<h3 id="output-5">Output</h3>
-<p>A boolean value of true if the colors found satisfy all the solution requirements.</p>
-<h3 id="代码-11">代码</h3>
-<pre><code class="language-javascript"><div><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">IsSudokuSolutionValid</span> (<span class="hljs-params">size : Int, edges : (Int, Int)[], 
-    startingNumberConstraints : (Int, Int)[], colors : Int[]</span>) : <span class="hljs-title">Bool</span> </span>{
-    <span class="hljs-keyword">if</span> (Any(GreaterThanOrEqualI(_, size), colors)) { <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; }
-    <span class="hljs-keyword">if</span> (Any(EqualI, edges)) { <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>; }
-    <span class="hljs-keyword">for</span> ((index, startingNumber) <span class="hljs-keyword">in</span> startingNumberConstraints) {
-        <span class="hljs-keyword">if</span> (colors[index] == startingNumber) {
-            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
-        }
-    }
-    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
 }
 </div></code></pre>
 
